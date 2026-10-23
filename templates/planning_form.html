@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% block title %}Planejamento por categoria | Rota{% endblock %}
+{% block content %}
+  <div class="form-page-heading"><a class="back-link" href="{{ url_for('dashboard', trip_id=trip.id) }}#resumo">← Voltar para {{ trip.destino }}</a><span class="eyebrow">ORÇAMENTO DA VIAGEM</span><h1>Planejamento por categoria</h1><p>Defina quanto pretende reservar para cada grupo de despesas.</p></div>
+  <form class="edit-form planning-form" method="post">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    {% for category in categories %}
+      {% set existing_value = planning.get(category, {}).get('valor_previsto', 0) %}
+      <label>{{ category }}<div class="currency-field"><span aria-hidden="true">R$</span><input type="text" name="previsto_{{ loop.index0 }}" inputmode="decimal" data-money value="{{ request.form.get('previsto_' ~ loop.index0, existing_value|money_value) }}" placeholder="0,00"></div></label>
+    {% endfor %}
+    {% if not categories %}<p class="empty-row">Adicione uma categoria abaixo para começar a planejar.</p>{% endif %}
+    <div class="form-actions"><a class="button button-secondary" href="{{ url_for('dashboard', trip_id=trip.id) }}">Cancelar</a><button class="button button-primary" type="submit">Salvar planejamento</button></div>
+  </form>
+
+  <section class="category-manager">
+    <div class="section-title-row"><div><span class="eyebrow">CATEGORIAS DESTA VIAGEM</span><h2>Organize seus grupos de gastos</h2></div></div>
+    <form class="category-add-form" method="post" action="{{ url_for('add_planning_category', trip_id=trip.id) }}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <label>Nova categoria<input type="text" name="categoria_nova" maxlength="100" required placeholder="Ex.: Passeios"></label>
+      <button class="button button-primary" type="submit">Adicionar categoria <span aria-hidden="true">+</span></button>
+    </form>
+    {% if categories %}<div class="category-manager-list">{% for category in categories %}<div class="category-manager-row"><span>{{ category }}</span><form method="post" action="{{ url_for('delete_planning_category', trip_id=trip.id, category_index=loop.index0) }}" onsubmit="return confirm('Remover a categoria {{ category }}?')"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button type="submit" {% if category in trip.gastos|map(attribute='categoria')|list %}disabled title="A categoria possui gastos"{% endif %}>Remover</button></form></div>{% endfor %}</div>{% endif %}
+  </section>
+{% endblock %}

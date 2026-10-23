@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+{% block title %}Roteiro de {{ trip.destino }} | Rota{% endblock %}
+{% block content %}
+  <div class="page-heading">
+    <div><a class="back-link" href="{{ url_for('dashboard', trip_id=trip.id) }}#atividades">← Voltar ao painel</a><span class="eyebrow">ROTEIRO DA VIAGEM</span><h1>Atividades</h1><p class="subheading">{{ trip.destino }} · {{ result_count }} resultado(s)</p></div>
+    <div class="heading-actions"><a class="button button-secondary" href="{{ url_for('itinerary_print', trip_id=trip.id) }}">Imprimir roteiro</a><a class="button button-primary" href="{{ url_for('activity_form', trip_id=trip.id) }}">Adicionar atividade <span aria-hidden="true">+</span></a></div>
+  </div>
+
+  <section class="expense-filters" aria-label="Filtros das atividades">
+    <form method="get" action="{{ url_for('activities_list', trip_id=trip.id) }}" class="filter-form">
+      <label>Data inicial<input type="date" name="data_inicio" value="{{ filters.data_inicio }}"></label>
+      <label>Data final<input type="date" name="data_fim" value="{{ filters.data_fim }}"></label>
+      <label>Situação<select name="situacao"><option value="">Todas</option>{% for status in statuses %}<option value="{{ status }}" {% if filters.situacao == status %}selected{% endif %}>{{ status|capitalize }}</option>{% endfor %}</select></label>
+      <label class="filter-search">Atividade, local ou observação<input type="search" name="busca" value="{{ filters.busca }}" placeholder="Buscar no roteiro"></label>
+      <div class="filter-actions"><button class="button button-primary" type="submit">Filtrar</button><a class="button button-secondary" href="{{ url_for('activities_list', trip_id=trip.id) }}">Limpar</a></div>
+    </form>
+  </section>
+
+  <section class="activity-results" aria-label="Atividades encontradas">
+    {% for day in activity_days %}
+      <section class="activity-day" aria-labelledby="activity-day-{{ loop.index }}">
+        <header class="activity-day-heading"><h2 id="activity-day-{{ loop.index }}">{{ day.data }}</h2><span class="activity-day-count">{{ day["items"]|length }} atividade(s)</span></header>
+        <div class="activity-day-list">
+          {% for activity in day["items"] %}
+            <article class="activity-card">
+              <div class="activity-card-time">{% if activity.horario %}<time datetime="{{ activity.data|input_date }}T{{ activity.horario }}">{{ activity.horario }}</time>{% else %}<span>Sem horário</span>{% endif %}</div>
+              <div class="activity-card-main">
+                <div class="activity-card-heading"><h3>{{ activity.nome }}</h3><span class="activity-status {{ activity.situacao }}">{{ activity.situacao|capitalize }}</span></div>
+                <div class="activity-card-meta">{% if activity.local %}<span><strong>LOCAL</strong> {{ activity.local }}</span>{% endif %}{% if activity.custo_estimado is not none %}<span><strong>ESTIMATIVA</strong> {{ activity.custo_estimado|money }}</span>{% endif %}</div>
+                {% if activity.observacao %}<p class="activity-card-note">{{ activity.observacao }}</p>{% endif %}
+              </div>
+              <div class="activity-card-actions">
+                {% if activity.situacao in ("planejada", "reservada", "realizada") %}
+                  {% set reopening = activity.situacao == "realizada" %}
+                  <form method="post" action="{{ url_for('update_activity_status', trip_id=trip.id, item_id=activity.id) }}">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <input type="hidden" name="origin" value="activities">
+                    <input type="hidden" name="action" value="{{ 'reopen' if reopening else 'complete' }}">
+                    <button class="activity-action-link activity-complete-button {% if reopening %}activity-reopen-button{% endif %}" type="submit">{{ "Reabrir atividade" if reopening else "Marcar realizada" }}</button>
+                  </form>
+                {% endif %}
+                <a class="activity-action-link" href="{{ url_for('activity_form', trip_id=trip.id, item_id=activity.id) }}">Editar</a>
+                <form method="post" action="{{ url_for('delete_activity', trip_id=trip.id, item_id=activity.id) }}" onsubmit="return confirm('Remover esta atividade?')"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="activity-action-link activity-action-danger" type="submit">Remover</button></form>
+              </div>
+            </article>
+          {% endfor %}
+        </div>
+      </section>
+    {% else %}
+      <div class="empty-row"><span>{% if total_count %}Nenhuma atividade corresponde aos filtros.{% else %}Nenhuma atividade planejada.{% endif %}</span>{% if not total_count %}<a href="{{ url_for('activity_form', trip_id=trip.id) }}">Adicionar a primeira</a>{% endif %}</div>
+    {% endfor %}
+  </section>
+
+  {% if page_count > 1 %}<nav class="pagination" aria-label="Paginação das atividades"><span>Página {{ page }} de {{ page_count }}</span><div>{% if page > 1 %}<a class="button button-secondary" href="{{ url_for('activities_list', trip_id=trip.id, data_inicio=filters.data_inicio, data_fim=filters.data_fim, situacao=filters.situacao, busca=filters.busca, pagina=page - 1) }}">Anterior</a>{% endif %}{% if page < page_count %}<a class="button button-secondary" href="{{ url_for('activities_list', trip_id=trip.id, data_inicio=filters.data_inicio, data_fim=filters.data_fim, situacao=filters.situacao, busca=filters.busca, pagina=page + 1) }}">Próxima</a>{% endif %}</div></nav>{% endif %}
+{% endblock %}

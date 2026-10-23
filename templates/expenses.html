@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+{% block title %}Todos os gastos de {{ trip.destino }} | Rota{% endblock %}
+{% block content %}
+  <div class="page-heading">
+    <div><a class="back-link" href="{{ url_for('dashboard', trip_id=trip.id) }}#gastos">← Voltar ao painel</a><span class="eyebrow">DESPESAS DA VIAGEM</span><h1>Todos os gastos</h1><p class="subheading">{{ trip.destino }} · {{ result_count }} resultado(s)</p></div>
+    <a class="button button-primary" href="{{ url_for('expense_form', trip_id=trip.id) }}">Adicionar gasto <span aria-hidden="true">+</span></a>
+  </div>
+
+  <section class="expense-filters" aria-label="Filtros dos gastos">
+    <form method="get" action="{{ url_for('expenses_list', trip_id=trip.id) }}" class="filter-form">
+      <label>Categoria<select name="categoria"><option value="">Todas</option>{% for category in categories %}<option value="{{ category }}" {% if filters.categoria == category %}selected{% endif %}>{{ category }}</option>{% endfor %}</select></label>
+      <label>Data inicial<input type="date" name="data_inicio" value="{{ filters.data_inicio }}"></label>
+      <label>Data final<input type="date" name="data_fim" value="{{ filters.data_fim }}"></label>
+      <label>Pagamento<select name="pago"><option value="">Todos</option><option value="sim" {% if filters.pago == 'sim' %}selected{% endif %}>Pago</option><option value="nao" {% if filters.pago == 'nao' %}selected{% endif %}>Pendente</option></select></label>
+      <label class="filter-search">Descrição<input type="search" name="busca" value="{{ filters.busca }}" placeholder="Buscar gasto"></label>
+      <div class="filter-actions"><button class="button button-primary" type="submit">Filtrar</button><a class="button button-secondary" href="{{ url_for('expenses_list', trip_id=trip.id) }}">Limpar</a></div>
+    </form>
+  </section>
+
+  <section class="filtered-totals" aria-label="Totais dos resultados">
+    <div class="filtered-total-card filtered-total-spent"><span>GASTO REGISTRADO</span><strong>{{ total_brl|money }}</strong></div>
+    <div class="filtered-total-card filtered-total-paid"><span>PAGO</span><strong>{{ paid_brl|money }}</strong></div>
+    <div class="filtered-total-card filtered-total-open"><span>A PAGAR</span><strong>{{ open_brl|money }}</strong></div>
+  </section>
+
+  <section class="expense-results">
+    <div class="expense-results-heading"><div><span class="eyebrow">DETALHAMENTO</span><h2>Gastos encontrados</h2></div><span>{{ result_count }} registro(s)</span></div>
+    <p class="expense-scroll-hint">Deslize a tabela para o lado para ver todos os detalhes.</p>
+    <div class="table-wrap expense-table-wrap" role="region" aria-label="Tabela de gastos" tabindex="0"><table><thead><tr><th>DATA</th><th>CATEGORIA</th><th>DESCRIÇÃO</th><th>FORMA DE PAGAMENTO</th><th>MOEDA</th><th>VALOR ORIGINAL</th><th>COTAÇÃO → BRL</th><th>VALOR EM R$</th><th>PAGO?</th><th>PAGADORES</th><th>OBSERVAÇÃO</th><th></th></tr></thead><tbody>
+      {% for expense in expenses %}<tr><td>{{ expense.data_gasto }}</td><td><span class="category-label">{{ expense.categoria }}</span></td><td class="primary-cell">{{ expense.descricao }}</td><td>{{ expense.forma_pagamento or "—" }}</td><td>{{ expense.moeda }}</td><td>{{ expense.valor_original|money(expense.moeda) }}</td><td>{{ "—" if expense.moeda == "BRL" else "%.6f"|format(expense.cotacao) }}</td><td class="amount-real">{{ expense.valor_em_brl|money }}</td><td><span class="payment-status {% if expense|payment_status == 'Pago' %}paid{% elif expense|payment_status == 'Parcial' %}partial{% endif %}">{{ expense|payment_status }}</span></td><td class="observation-cell">{{ expense.pagamentos|payment_people }}</td><td class="observation-cell">{{ expense.observacao or "—" }}</td><td class="expense-actions-cell"><div class="row-actions"><a class="activity-action-link" href="{{ url_for('expense_form', trip_id=trip.id, item_id=expense.id) }}">Editar</a><form method="post" action="{{ url_for('delete_expense', trip_id=trip.id, item_id=expense.id) }}" onsubmit="return confirm('Remover este gasto?')"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}">{% for key, value in filters.items() %}<input type="hidden" name="{{ key }}" value="{{ value }}">{% endfor %}<input type="hidden" name="pagina" value="{{ page }}"><button class="activity-action-link activity-action-danger" type="submit">Remover</button></form></div></td></tr>{% else %}<tr><td colspan="12" class="no-results">Nenhum gasto corresponde aos filtros.</td></tr>{% endfor %}
+    </tbody></table></div>
+  </section>
+
+  {% if page_count > 1 %}<nav class="pagination" aria-label="Paginação dos gastos"><span>Página {{ page }} de {{ page_count }}</span><div>{% if page > 1 %}<a class="button button-secondary" href="{{ url_for('expenses_list', trip_id=trip.id, categoria=filters.categoria, data_inicio=filters.data_inicio, data_fim=filters.data_fim, pago=filters.pago, busca=filters.busca, pagina=page - 1) }}">Anterior</a>{% endif %}{% if page < page_count %}<a class="button button-secondary" href="{{ url_for('expenses_list', trip_id=trip.id, categoria=filters.categoria, data_inicio=filters.data_inicio, data_fim=filters.data_fim, pago=filters.pago, busca=filters.busca, pagina=page + 1) }}">Próxima</a>{% endif %}</div></nav>{% endif %}
+{% endblock %}

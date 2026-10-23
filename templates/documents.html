@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+{% block title %}Documentos de {{ trip.destino }} | Rota{% endblock %}
+{% block content %}
+  <div class="page-heading"><div><a class="back-link" href="{{ url_for('dashboard', trip_id=trip.id) }}">← Voltar ao painel</a><span class="eyebrow">ARQUIVOS DA VIAGEM</span><h1>Documentos</h1><p class="subheading">{{ trip.destino }} · documentos gerais</p></div></div>
+  <section class="backup-panel document-manager" aria-labelledby="documents-title">
+    <div class="section-title-row"><div><span class="eyebrow">COMPROVANTES E ARQUIVOS</span><h2 id="documents-title">Arquivos da viagem</h2></div></div>
+    <p>Guarde seguro, confirmações e outros documentos que não pertencem a um gasto ou atividade específica.</p>
+    {% include "_attachments.html" %}
+    <form class="document-upload-form" method="post" enctype="multipart/form-data" action="{{ url_for('trip_documents', trip_id=trip.id) }}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <label>Adicionar documentos<input type="file" name="anexos" accept=".pdf,.jpg,.jpeg,.png,application/pdf,image/jpeg,image/png" multiple required><small class="field-hint">PDF, JPG ou PNG · até 10 MB por arquivo · máximo 5 por envio.</small></label>
+      <button class="button button-primary" type="submit">Enviar arquivos</button>
+    </form>
+  </section>
+{% endblock %}

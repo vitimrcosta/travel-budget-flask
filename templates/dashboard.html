@@ -1,0 +1,140 @@
+{% extends "base.html" %}
+{% if trip %}{% set page_title = trip.destino %}{% else %}{% set page_title = "Suas viagens" %}{% endif %}
+{% block title %}{{ page_title }} | Rota{% endblock %}
+{% block content %}
+  {% if trip %}
+    <div class="page-heading dashboard-heading">
+      <div><span class="eyebrow">PAINEL DA VIAGEM</span></div>
+      <div class="dashboard-heading-actions">
+        <a class="button button-primary" href="{{ url_for('expense_form', trip_id=trip.id) }}">Adicionar gasto <span aria-hidden="true">+</span></a>
+        <details class="trip-actions-menu">
+          <summary aria-label="Mais ações da viagem" title="Mais ações da viagem"><span aria-hidden="true">⋯</span></summary>
+          <nav class="trip-actions-panel" aria-label="Ações da viagem">
+            <a href="{{ url_for('trip_people', trip_id=trip.id) }}">Pessoas ({{ trip.pessoas|length }})</a>
+            <a href="{{ url_for('trip_documents', trip_id=trip.id) }}">Documentos da viagem</a>
+            <a href="{{ url_for('reservations_list', trip_id=trip.id) }}">Reservas ({{ trip.reservas|length }})</a>
+            <a href="{{ url_for('export_trip_backup', trip_id=trip.id) }}">Exportar backup ZIP</a>
+            <a href="{{ url_for('trip_report', trip_id=trip.id) }}">Ver relatório</a>
+            <a href="{{ url_for('edit_trip', trip_id=trip.id) }}">Editar viagem</a>
+            <div class="trip-actions-divider"></div>
+            <form class="trip-delete-form" method="post" action="{{ url_for('delete_trip', trip_id=trip.id) }}" onsubmit="return confirm('Excluir esta viagem e todos os registros associados?')">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              <button type="submit">Excluir viagem</button>
+            </form>
+          </nav>
+        </details>
+      </div>
+    </div>
+
+    {% set trip_country = countries_by_code.get(trip.bandeira) %}
+    <section class="trip-cover" aria-label="Resumo do destino">
+      <div class="cover-image {% if cover_attachment %}custom-cover{% endif %}" data-cover-preview {% if cover_attachment %}style="background-image: url('{{ url_for('trip_cover_image', trip_id=trip.id, attachment_id=cover_attachment.id) }}')"{% endif %}></div>
+      <div class="cover-copy"><span>PRÓXIMA PARADA</span><strong>{% if trip_country %}<img class="trip-cover-flag" src="{{ url_for('static', filename='flags/' ~ trip_country.code|lower ~ '.svg') }}" alt="" aria-hidden="true">{% endif %}{{ trip.destino }}{% if trip_country %}, {{ trip_country.name }}{% endif %}</strong><small>{{ trip.data_ida }} até {{ trip.data_volta }}</small></div>
+      <div class="cover-actions">
+        <form class="cover-upload" data-cover-upload method="post" enctype="multipart/form-data" action="{{ url_for('upload_trip_cover', trip_id=trip.id) }}">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <label class="cover-control" for="trip-cover-file">
+            <svg aria-hidden="true" viewBox="0 0 20 20" focusable="false"><path d="M3 6.5h3l1.2-2h5.6l1.2 2h3v9H3zM10 8a3 3 0 1 0 0 6 3 3 0 0 0 0-6Z"/></svg>
+            <span>Alterar foto</span>
+          </label>
+          <input class="cover-file-input" id="trip-cover-file" type="file" name="capa" accept=".jpg,.jpeg,.png,image/jpeg,image/png" aria-describedby="cover-preview-status" required>
+          <span class="cover-preview-status" id="cover-preview-status" role="status" aria-live="polite"></span>
+          <button class="cover-control cover-save" type="submit" hidden>Salvar</button>
+        </form>
+      </div>
+    </section>
+
+    <section class="finance-section" id="resumo" aria-labelledby="finance-title">
+      <div class="section-title-row"><div><span class="eyebrow">VISÃO FINANCEIRA</span><h2 id="finance-title">Resumo da viagem</h2></div></div>
+      <div class="metrics">
+        <div class="metric metric-balance {% if totals.alerta_orcamento == 'excedido' %}over-budget{% elif totals.alerta_orcamento == 'atencao' %}near-budget-limit{% endif %}">
+          <span>SALDO DO PLANEJAMENTO</span>
+          <strong>{{ totals.total_faltante|money }}</strong>
+          <small>Positivo: restante · negativo: excedido</small>
+          {% if totals.total_previsto > 0 %}
+            {% set budget_percentage = totals.percentual_orcamento_usado %}
+            {% set budget_progress = [budget_percentage, 100]|min %}
+            <div class="budget-usage">
+              <div class="budget-usage-label"><span>Orçamento utilizado</span><strong>{{ "%.1f"|format(budget_percentage) }}%</strong></div>
+              <div class="budget-progress" role="progressbar" aria-label="Orçamento utilizado" aria-valuemin="0" aria-valuemax="100" aria-valuenow="{{ "%.1f"|format(budget_progress) }}"><span class="{% if totals.alerta_orcamento == 'excedido' %}over-budget{% elif totals.alerta_orcamento == 'atencao' %}near-budget-limit{% endif %}" style="width: {{ budget_progress }}%"></span></div>
+            </div>
+          {% else %}
+            <small class="budget-no-plan">Defina um valor previsto para acompanhar o orçamento.</small>
+          {% endif %}
+        </div>
+        <div class="metric"><span>TOTAL PREVISTO</span><strong>{{ totals.total_previsto|money }}</strong><small>Planejamento por categoria</small></div>
+        <div class="metric"><span>GASTO REGISTRADO</span><strong>{{ totals.total_gasto|money }}</strong><small>Inclui gastos pendentes</small></div>
+        <div class="metric"><span>TOTAL PAGO</span><strong>{{ totals.total_pago|money }}</strong><small>{{ "%.1f"|format(totals.percentual_pago) }}% do previsto</small></div>
+        <div class="metric"><span>A PAGAR</span><strong>{{ totals.total_em_aberto|money }}</strong><small>Gastos registrados ainda não quitados</small></div>
+      </div>
+      {% if totals.alerta_orcamento == 'excedido' %}<p class="budget-alert">O orçamento geral foi ultrapassado em {{ (-totals.total_faltante)|money }} ({{ "%.1f"|format(totals.percentual_orcamento_usado) }}% utilizado).</p>{% elif totals.alerta_orcamento == 'atencao' %}<p class="budget-warning" role="status">Atenção: {{ "%.1f"|format(totals.percentual_orcamento_usado) }}% do orçamento geral utilizado. Restam {{ totals.total_faltante|money }}.</p>{% endif %}
+    </section>
+
+    <section class="record-section category-summary" aria-labelledby="category-summary-title">
+      <div class="section-title-row"><div><span class="eyebrow">ACOMPANHAMENTO DO ORÇAMENTO</span><h2 id="category-summary-title">Planejamento por categoria</h2></div><a class="button button-primary" href="{{ url_for('edit_planning', trip_id=trip.id) }}">Editar valores <span aria-hidden="true">+</span></a></div>
+      <div class="table-wrap"><table><thead><tr><th>CATEGORIA</th><th>PREVISTO</th><th>GASTO REGISTRADO</th><th>PAGO</th><th>A PAGAR</th><th>SALDO</th></tr></thead><tbody>
+        {% for line in totals.categorias %}<tr><td class="primary-cell">{{ line.categoria }}</td><td>{{ line.previsto|money }}</td><td>{{ line.gasto|money }}</td><td>{{ line.pago|money }}</td><td>{{ line.em_aberto|money }}</td><td class="category-balance {% if line.alerta_orcamento == 'excedido' %}amount-over{% else %}amount-real{% endif %}"><strong>{{ line.falta|money }}</strong>{% if line.percentual_usado is not none %}<div class="category-progress" role="progressbar" aria-label="{{ line.categoria }}: {{ '%.1f'|format(line.percentual_usado) }}% do previsto usado" aria-valuemin="0" aria-valuemax="100" aria-valuenow="{{ line.progresso }}"><span class="category-progress-fill {% if line.alerta_orcamento == 'excedido' %}over-budget{% elif line.alerta_orcamento == 'atencao' %}near-budget-limit{% endif %}" style="width: {{ line.progresso }}%"></span></div>{% if line.alerta_orcamento == 'excedido' %}<small class="budget-alert">Excedido em {{ (-line.falta)|money }} · {{ "%.1f"|format(line.percentual_usado) }}%</small>{% elif line.alerta_orcamento == 'atencao' %}<small class="budget-warning">Atenção · {{ "%.1f"|format(line.percentual_usado) }}% utilizado</small>{% else %}<small>{{ "%.1f"|format(line.percentual_usado) }}% usado</small>{% endif %}{% else %}<small class="no-plan">Sem previsto</small>{% endif %}</td></tr>{% endfor %}
+        <tr class="table-total"><td>TOTAL</td><td>{{ totals.total_previsto|money }}</td><td>{{ totals.total_gasto|money }}</td><td>{{ totals.total_pago|money }}</td><td>{{ totals.total_em_aberto|money }}</td><td>{{ totals.total_faltante|money }}</td></tr>
+      </tbody></table></div>
+    </section>
+
+    <div class="records-grid">
+      <section class="record-section" id="gastos">
+        <div class="section-title-row"><div><span class="eyebrow">DESPESAS</span><h2>Gastos recentes</h2></div><div class="heading-actions"><a class="button button-secondary" href="{{ url_for('expenses_list', trip_id=trip.id) }}">Ver todos ({{ trip.gastos|length }})</a></div></div>
+        {% if recent_expenses %}
+          <div class="table-wrap"><table><thead><tr><th>DATA</th><th>CATEGORIA</th><th>DESCRIÇÃO</th><th>VALOR EM R$</th><th>PAGO?</th><th></th></tr></thead><tbody>
+            {% for expense in recent_expenses %}<tr><td>{{ expense.data_gasto }}</td><td><span class="category-label">{{ expense.categoria }}</span></td><td class="primary-cell">{{ expense.descricao }}</td><td class="amount-real">{{ expense.valor_em_brl|money }}</td><td><span class="payment-status {% if expense|payment_status == 'Pago' %}paid{% elif expense|payment_status == 'Parcial' %}partial{% endif %}">{{ expense|payment_status }}</span></td><td class="row-actions"><a href="{{ url_for('expense_form', trip_id=trip.id, item_id=expense.id) }}">Detalhes</a></td></tr>{% endfor %}
+          </tbody></table></div>
+        {% else %}<div class="empty-row"><span>Nenhum gasto cadastrado nesta viagem. Use “Adicionar gasto” para registrar o primeiro.</span></div>{% endif %}
+      </section>
+
+      <section class="record-section" id="atividades" aria-labelledby="next-activity-title">
+        <div class="section-title-row"><div><span class="eyebrow">ROTEIRO</span><h2 id="next-activity-title">Próxima atividade</h2></div><a class="button button-secondary" href="{{ url_for('activities_list', trip_id=trip.id) }}">Roteiro completo</a></div>
+        {% if next_activity %}
+          <article class="next-activity-card">
+            <div class="next-activity-date">
+              <time datetime="{{ next_activity.data|input_date }}{% if next_activity.horario %}T{{ next_activity.horario }}{% endif %}">{{ next_activity.data }}</time>
+              <span>{{ next_activity.horario or "Horário não definido" }}</span>
+            </div>
+            <div class="next-activity-main">
+              <div class="next-activity-heading"><h3>{{ next_activity.nome }}</h3><span class="activity-status {{ next_activity.situacao }}">{{ next_activity.situacao|capitalize }}</span></div>
+              <p>{{ next_activity.local or "Local não informado" }}</p>
+            </div>
+            <form class="activity-complete-form" method="post" action="{{ url_for('update_activity_status', trip_id=trip.id, item_id=next_activity.id) }}">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              <input type="hidden" name="origin" value="dashboard">
+              <input type="hidden" name="action" value="complete">
+              <button class="activity-complete-button" type="submit">Marcar como realizada</button>
+            </form>
+          </article>
+        {% elif trip.atividades %}
+          <div class="empty-row"><span>Não há próximas atividades planejadas.</span><a href="{{ url_for('activity_form', trip_id=trip.id) }}">Adicionar atividade</a></div>
+        {% else %}
+          <div class="empty-row"><span>Nenhuma atividade planejada nesta viagem.</span><a href="{{ url_for('activity_form', trip_id=trip.id) }}">Adicionar primeira atividade</a></div>
+        {% endif %}
+      </section>
+
+      <section class="record-section" id="reservas" aria-labelledby="reservation-summary-title">
+        <div class="section-title-row"><div><span class="eyebrow">CONFIRMAÇÕES</span><h2 id="reservation-summary-title">Reservas</h2></div><a class="button button-secondary" href="{{ url_for('reservations_list', trip_id=trip.id) }}">Ver todas ({{ trip.reservas|length }})</a></div>
+        {% if recent_reservations %}
+          <div class="reservation-preview-list">
+            {% for reservation in recent_reservations %}
+              <article class="reservation-preview">
+                <div class="reservation-preview-date"><time datetime="{{ reservation.data_inicio|input_date }}{% if reservation.horario_checkin %}T{{ reservation.horario_checkin }}{% endif %}">{{ reservation.data_inicio }}{% if reservation.horario_checkin %} · {{ reservation.horario_checkin }}{% endif %}</time><span>Check-out {{ reservation.data_fim }}{% if reservation.horario_checkout %} · {{ reservation.horario_checkout }}{% endif %}</span></div>
+                <div class="reservation-preview-main"><div class="activity-card-heading"><h3>{{ reservation.fornecedor }}</h3><span class="reservation-status {{ reservation.situacao }}">{{ reservation.situacao|capitalize }}</span></div><p>{{ reservation.tipo|capitalize }}{% if reservation.codigo_confirmacao %} · Código {{ reservation.codigo_confirmacao }}{% endif %}</p>{% if reservation.alerta_prazo %}<small class="reservation-deadline-alert">{{ reservation.alerta_prazo }}</small>{% endif %}</div>
+              </article>
+            {% endfor %}
+          </div>
+        {% else %}
+          <div class="empty-row"><span>Nenhuma reserva cadastrada nesta viagem.</span><a href="{{ url_for('reservation_form', trip_id=trip.id) }}">Adicionar primeira reserva</a></div>
+        {% endif %}
+      </section>
+    </div>
+  {% else %}
+    <section class="welcome-panel">
+      <div class="welcome-art" aria-hidden="true"></div>
+      <div class="welcome-copy"><span class="eyebrow">UM NOVO CAMINHO COMEÇA AQUI</span><h1>Suas viagens,<br>bem organizadas.</h1><p>Planeje um destino e acompanhe orçamento, gastos e atividades em um só lugar.</p><a class="button button-primary" href="{{ url_for('new_trip') }}">Planejar uma viagem <span aria-hidden="true">→</span></a></div>
+    </section>
+    {% if trips %}<section class="all-trips"><span class="eyebrow">VIAGENS CADASTRADAS</span><h2>Escolha uma viagem para abrir</h2><div class="trip-cards">{% for saved_trip in trips %}<a class="trip-card" href="{{ url_for('dashboard', trip_id=saved_trip.id) }}"><span>{{ saved_trip.data_ida }} — {{ saved_trip.data_volta }}</span><strong>{{ saved_trip.destino }}</strong><small>Abrir painel <span aria-hidden="true">→</span></small></a>{% endfor %}</div></section>{% endif %}
+  {% endif %}
+{% endblock %}

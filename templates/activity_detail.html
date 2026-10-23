@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% block title %}{{ activity.nome }} | {{ trip.destino }} | Rota{% endblock %}
+{% block content %}
+  <div class="page-heading">
+    <div><a class="back-link" href="{{ url_for('activities_list', trip_id=trip.id) }}">← Voltar ao roteiro</a><span class="eyebrow">DETALHE DA ATIVIDADE · {{ trip.destino }}</span><h1>{{ activity.nome }}</h1><p class="subheading">{{ activity.data }}{% if activity.horario %} · {{ activity.horario }}{% endif %}</p></div>
+    <div class="heading-actions"><a class="button button-secondary" href="{{ url_for('activity_form', trip_id=trip.id, item_id=activity.id) }}">Editar atividade</a><form method="post" action="{{ url_for('delete_activity', trip_id=trip.id, item_id=activity.id) }}" onsubmit="return confirm('Remover esta atividade?')"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="button button-danger" type="submit">Remover</button></form></div>
+  </div>
+
+  <div class="activity-detail-grid">
+    <section class="activity-detail-panel" aria-labelledby="activity-info-title">
+      <div class="section-title-row"><div><span class="eyebrow">ROTEIRO</span><h2 id="activity-info-title">Informações</h2></div><span class="activity-status {{ activity.situacao }}">{{ activity.situacao|capitalize }}</span></div>
+      <dl class="activity-detail-fields">
+        <div><dt>Data</dt><dd>{{ activity.data }}</dd></div>
+        <div><dt>Horário</dt><dd>{{ activity.horario or "Não definido" }}</dd></div>
+        <div><dt>Local</dt><dd>{{ activity.local or "Não informado" }}</dd></div>
+        <div><dt>Custo estimado</dt><dd>{% if activity.custo_estimado is not none %}{{ activity.custo_estimado|money }}{% else %}Não estimado{% endif %}</dd></div>
+      </dl>
+      <section class="activity-detail-note"><h3>Observação</h3><p>{{ activity.observacao or "Nenhuma observação cadastrada." }}</p></section>
+    </section>
+
+    <section class="activity-detail-panel" aria-labelledby="activity-files-title">
+      <div class="section-title-row"><div><span class="eyebrow">DOCUMENTOS</span><h2 id="activity-files-title">Ingressos e confirmações</h2></div></div>
+      {% include "_attachments.html" %}
+      <a class="button button-secondary activity-detail-edit" href="{{ url_for('activity_form', trip_id=trip.id, item_id=activity.id) }}">Gerenciar anexos</a>
+    </section>
+  </div>
+{% endblock %}

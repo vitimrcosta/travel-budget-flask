@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+{% set is_expense = record_type == "expense" %}
+{% set heading = ("Editar gasto" if item else "Adicionar gasto") if is_expense else ("Editar atividade" if item else "Adicionar atividade") %}
+{% block title %}{{ heading }} | Rota{% endblock %}
+{% block content %}
+  <div class="form-page-heading">{% if is_expense %}<a class="back-link" href="{{ url_for('dashboard', trip_id=trip.id) }}#gastos">← Voltar para {{ trip.destino }}</a>{% else %}<a class="back-link" href="{{ url_for('activities_list', trip_id=trip.id) }}">← Voltar ao roteiro</a>{% endif %}<span class="eyebrow">{{ "DESPESA DA VIAGEM" if is_expense else "ROTEIRO DA VIAGEM" }}</span><h1>{{ heading }}</h1><p>{{ trip.destino }} · {{ trip.data_ida }} a {{ trip.data_volta }}</p></div>
+  <form class="edit-form" method="post" enctype="multipart/form-data">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    {% if is_expense %}
+      <div class="form-row"><label>Data<input type="date" name="data_gasto" required value="{{ request.form.get('data_gasto', item.data_gasto|input_date if item else '') }}"></label><label>Categoria<select name="categoria" required><option value="">Selecione</option>{% for category in trip.planejamento %}<option value="{{ category.categoria }}" {% if request.form.get('categoria', item.categoria if item else '') == category.categoria %}selected{% endif %}>{{ category.categoria }}</option>{% endfor %}</select></label></div>
+      <label>Descrição<input type="text" name="descricao" maxlength="255" required value="{{ request.form.get('descricao', item.descricao if item else '') }}" placeholder="Ex.: Passagem aérea"></label>
+      <label>Moeda<select name="moeda" data-expense-currency required>{% for code in currency_codes %}<option value="{{ code }}" {% if request.form.get('moeda', item.moeda if item else 'BRL') == code %}selected{% endif %}>{{ code }} · {{ currency_names[code] }}</option>{% endfor %}</select></label>
+      <div class="form-row" data-currency-row><label data-original-field>Valor original<div class="currency-field"><span data-currency-prefix>{{ request.form.get('moeda', item.moeda if item else 'BRL') }}</span><input type="text" name="valor_original" inputmode="decimal" data-money data-original-amount required value="{{ request.form.get('valor_original', item.valor_original|money_value if item else '') }}" placeholder="Ex.: 514,50"></div></label><label data-rate-field><span data-rate-title>Cotação CLP→BRL</span><input type="text" name="cotacao" data-exchange-rate data-auto-rate="{{ 'false' if item else 'true' }}" inputmode="decimal" value="{{ request.form.get('cotacao', item.cotacao if item else '') }}" placeholder="Será buscada pela data do gasto"><small class="field-hint" data-rate-caption>1 CLP vale quantos reais?</small><small class="field-hint" data-rate-message aria-live="polite"></small></label></div>
+      <div class="converted-value"><span>VALOR EM R$</span><output data-value-in-brl>{% if item %}{{ item.valor_em_brl|money }}{% else %}R$ 0,00{% endif %}</output></div>
+      <div class="form-row payment-options-row"><label for="forma-pagamento">Forma de pagamento (sem pagadores)</label><label for="pago">Pagamento sem detalhamento</label><select id="forma-pagamento" name="forma_pagamento" data-payment-method><option value="">Selecione</option>{% for method in payment_methods %}<option value="{{ method }}" {% if request.form.get('forma_pagamento', item.forma_pagamento if item else '') == method %}selected{% endif %}>{{ method }}</option>{% endfor %}</select><select id="pago" name="pago" data-paid-select><option value="0" {% if request.form.get('pago', '1' if item and item.pago else '0') == '0' %}selected{% endif %}>Pendente</option><option value="1" {% if request.form.get('pago', '1' if item and item.pago else '0') == '1' %}selected{% endif %}>Pago</option></select></div>
+      <small class="field-hint payment-options-hint">A forma geral é usada sem pagadores detalhados; com pagadores informados, o estado é calculado pelos valores.</small>
+      <section class="payment-breakdown" data-payment-breakdown aria-labelledby="payment-breakdown-title">
+        <div class="section-title-row"><div><span class="eyebrow">PAGAMENTO COMPARTILHADO</span><h2 id="payment-breakdown-title">Quem pagou?</h2></div><strong data-payment-total>R$ 0,00</strong></div>
+        <p>Informe quanto cada pessoa pagou, sempre em reais equivalentes. A soma não pode ultrapassar o total do gasto.</p>
+        <div class="payment-rows" data-payment-rows>
+          {% for payment in payment_rows %}{% set payment_index = loop.index0 %}
+            <div class="payment-row" data-payment-row>
+              <label>Pessoa<select name="pagador_id"><option value="">Não identificado</option>{% for person in trip.pessoas %}<option value="{{ person.id }}" {% if payment.participante_id|string == person.id|string %}selected{% endif %}>{{ person.nome }}</option>{% endfor %}</select></label>
+              <label>Valor pago (BRL)<input type="text" name="valor_pago" inputmode="decimal" data-money data-payment-amount value="{{ request.form.getlist('valor_pago')[payment_index] if request.form.getlist('valor_pago')|length > payment_index else payment.valor_brl|default('') }}" placeholder="Ex.: 50,00"></label>
+              <label>Forma<select name="forma_pagamento_pagador"><option value="">Não informada</option>{% for method in payment_methods %}<option value="{{ method }}" {% if payment.forma_pagamento == method %}selected{% endif %}>{{ method }}</option>{% endfor %}</select></label>
+              <button class="payment-row-remove" type="button" data-remove-payment-row aria-label="Remover pagador">Remover</button>
+            </div>
+          {% else %}
+            <div class="payment-row" data-payment-row>
+              <label>Pessoa<select name="pagador_id"><option value="">Não identificado</option>{% for person in trip.pessoas %}<option value="{{ person.id }}">{{ person.nome }}</option>{% endfor %}</select></label>
+              <label>Valor pago (BRL)<input type="text" name="valor_pago" inputmode="decimal" data-money data-payment-amount placeholder="Ex.: 50,00"></label>
+              <label>Forma<select name="forma_pagamento_pagador"><option value="">Não informada</option>{% for method in payment_methods %}<option value="{{ method }}">{{ method }}</option>{% endfor %}</select></label>
+              <button class="payment-row-remove" type="button" data-remove-payment-row aria-label="Remover pagador">Remover</button>
+            </div>
+          {% endfor %}
+        </div>
+        <template data-payment-row-template><div class="payment-row" data-payment-row>
+          <label>Pessoa<select name="pagador_id"><option value="">Não identificado</option>{% for person in trip.pessoas %}<option value="{{ person.id }}">{{ person.nome }}</option>{% endfor %}</select></label>
+          <label>Valor pago (BRL)<input type="text" name="valor_pago" inputmode="decimal" data-money data-payment-amount placeholder="Ex.: 50,00"></label>
+          <label>Forma<select name="forma_pagamento_pagador"><option value="">Não informada</option>{% for method in payment_methods %}<option value="{{ method }}">{{ method }}</option>{% endfor %}</select></label>
+          <button class="payment-row-remove" type="button" data-remove-payment-row aria-label="Remover pagador">Remover</button>
+        </div></template>
+        <button class="button button-secondary" type="button" data-add-payment-row>Adicionar pagador</button>
+        {% if not trip.pessoas %}<small class="field-hint">Cadastre participantes para identificar quem pagou. <a href="{{ url_for('trip_people', trip_id=trip.id) }}">Gerenciar pessoas</a></small>{% else %}<small class="field-hint"><a href="{{ url_for('trip_people', trip_id=trip.id) }}">Gerenciar pessoas da viagem</a></small>{% endif %}
+      </section>
+      <label>Observação<textarea name="observacao" rows="3" maxlength="2000" placeholder="Detalhes úteis sobre este gasto">{{ request.form.get('observacao', item.observacao if item else '') }}</textarea></label>
+      <section class="attachment-section"><h2>Comprovantes</h2>{% include "_attachments.html" %}<label>Anexar comprovantes<input type="file" name="anexos" accept=".pdf,.jpg,.jpeg,.png,application/pdf,image/jpeg,image/png" multiple><small class="field-hint">PDF, JPG ou PNG · até 10 MB por arquivo · máximo 5 por envio.</small></label></section>
+    {% else %}
+      <label>Nome da atividade<input type="text" name="nome" maxlength="150" required value="{{ request.form.get('nome', item.nome if item else '') }}" placeholder="Ex.: Visita ao museu"></label>
+      <label>Data<input type="date" name="data" min="{{ trip.data_ida|input_date }}" max="{{ trip.data_volta|input_date }}" required value="{{ request.form.get('data', item.data|input_date if item else '') }}"><small class="field-hint">A atividade deve ocorrer entre {{ trip.data_ida }} e {{ trip.data_volta }}.</small></label>
+      <div class="form-row"><label>Horário (opcional)<input type="time" name="horario" value="{{ request.form.get('horario', item.horario if item else '') }}"></label><div class="activity-status-field"><div class="activity-status-label"><label for="activity-status">Situação</label><details class="field-help"><summary aria-label="Ajuda sobre a situação da atividade" title="Ajuda sobre a situação"><span aria-hidden="true">i</span></summary><div class="field-help-content"><strong>Como escolher</strong><span><b>Planejada:</b> prevista, ainda sem confirmação.</span><span><b>Reservada:</b> voo, ingresso ou serviço confirmado.</span><span><b>Realizada:</b> já aconteceu.</span><span><b>Cancelada:</b> não vai acontecer.</span></div></details></div><select id="activity-status" name="situacao">{% set current_status = request.form.get('situacao', item.situacao if item else 'planejada') %}{% for status in activity_statuses %}<option value="{{ status }}" {% if current_status == status %}selected{% endif %}>{{ status|capitalize }}</option>{% endfor %}</select></div></div>
+      <label>Local (opcional)<input type="text" name="local" maxlength="255" value="{{ request.form.get('local', item.local if item else '') }}" placeholder="Ex.: Museu Nacional, Santiago"></label>
+      <label>Custo estimado (opcional, BRL)<div class="currency-field"><span aria-hidden="true">BRL</span><input type="text" name="custo_estimado" inputmode="decimal" data-money value="{{ request.form.get('custo_estimado', item.custo_estimado|money_value if item and item.custo_estimado is not none else '') }}" placeholder="Deixe vazio se ainda não souber"></div></label>
+      <label>Observação<textarea name="observacao" rows="3" maxlength="2000" placeholder="Endereço, horário, reserva ou outros detalhes úteis">{{ request.form.get('observacao', item.observacao if item else '') }}</textarea><small class="field-hint">Inclua informações práticas para consultar durante a viagem.</small></label>
+      <section class="attachment-section"><h2>Ingressos e confirmações</h2>{% include "_attachments.html" %}<label>Anexar arquivos<input type="file" name="anexos" accept=".pdf,.jpg,.jpeg,.png,application/pdf,image/jpeg,image/png" multiple><small class="field-hint">PDF, JPG ou PNG · até 10 MB por arquivo · máximo 5 por envio.</small></label></section>
+    {% endif %}
+    <div class="form-actions">{% if is_expense %}<a class="button button-secondary" href="{{ url_for('dashboard', trip_id=trip.id) }}">Cancelar</a>{% else %}<a class="button button-secondary" href="{{ url_for('activities_list', trip_id=trip.id) }}">Cancelar</a>{% endif %}<button class="button button-primary" type="submit">Salvar</button></div>
+  </form>
+{% endblock %}

@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% block title %}Relatório de {{ trip.destino }} | Rota{% endblock %}
+{% block content %}
+  {% set summary = totals %}
+  <div class="report-toolbar"><a class="back-link" href="{{ url_for('dashboard', trip_id=trip.id) }}">← Voltar ao painel</a><button class="button button-primary" type="button" onclick="window.print()">Imprimir / salvar PDF</button></div>
+  <article class="report-sheet">
+    <header class="report-header"><span class="eyebrow">ROTA · CONTROLE DE VIAGEM</span><h1>Relatório da viagem</h1><p>Resumo financeiro e roteiro</p></header>
+    {% set trip_country = countries_by_code.get(trip.bandeira) %}
+    <section class="report-trip"><span>DESTINO</span><h2>{% if trip_country %}<img class="report-trip-flag" src="{{ url_for('static', filename='flags/' ~ trip_country.code|lower ~ '.svg') }}" alt="Bandeira de {{ trip_country.name }}">{% endif %}{{ trip.destino }}{% if trip_country %}, {{ trip_country.name }}{% endif %}</h2><p>{{ trip.data_ida }} até {{ trip.data_volta }}</p></section>
+    <section class="report-finance"><h2>Resumo financeiro</h2><dl>
+      <div><dt>Total previsto</dt><dd>{{ summary.total_previsto|money }}</dd></div>
+      <div><dt>Gasto registrado</dt><dd>{{ summary.total_gasto|money }}</dd></div>
+      <div><dt>Total pago</dt><dd>{{ summary.total_pago|money }}</dd></div>
+      <div><dt>A pagar</dt><dd>{{ summary.total_em_aberto|money }}</dd></div>
+      <div class="report-balance"><dt>Saldo do planejamento</dt><dd>{{ summary.total_faltante|money }}</dd></div>
+      <div><dt>Percentual já pago</dt><dd>{{ "%.1f"|format(summary.percentual_pago) }}%</dd></div>
+    </dl></section>
+    {% if summary.total_faltante < 0 %}<p class="budget-alert">Gastos registrados acima do planejado em {{ (-summary.total_faltante)|money }}.</p>{% endif %}
+    <section class="report-list"><h2>Resumo por categoria</h2><table><thead><tr><th>Categoria</th><th>Previsto</th><th>Gasto registrado</th><th>Pago</th><th>A pagar</th><th>Saldo</th></tr></thead><tbody>{% for line in summary.categorias %}<tr><td>{{ line.categoria }}</td><td>{{ line.previsto|money }}</td><td>{{ line.gasto|money }}</td><td>{{ line.pago|money }}</td><td>{{ line.em_aberto|money }}</td><td>{{ line.falta|money }}</td></tr>{% endfor %}</tbody></table></section>
+    <section class="report-list"><h2>Gastos</h2>
+      {% if trip.gastos %}<table><thead><tr><th>Data</th><th>Categoria</th><th>Descrição</th><th>Original</th><th>Moeda</th><th>Cotação</th><th>Em R$</th><th>Estado</th><th>Pagadores</th><th>Observação</th></tr></thead><tbody>{% for expense in trip.gastos %}<tr><td>{{ expense.data_gasto }}</td><td>{{ expense.categoria }}</td><td>{{ expense.descricao }}</td><td>{{ expense.valor_original|money_value }}</td><td>{{ expense.moeda }}</td><td>{{ "—" if expense.moeda == "BRL" else "%.6f"|format(expense.cotacao) }}</td><td>{{ expense.valor_em_brl|money }}</td><td>{{ expense|payment_status }}</td><td>{{ expense.pagamentos|payment_people }}</td><td>{{ expense.observacao or "—" }}</td></tr>{% endfor %}</tbody></table>
+      {% else %}<p class="report-empty">Nenhum gasto registrado.</p>{% endif %}
+    </section>
+    <section class="report-list"><h2>Atividades</h2>
+      {% if trip.atividades %}<table><thead><tr><th>Atividade</th><th>Data</th><th>Horário</th><th>Local</th><th>Situação</th><th>Estimativa</th><th>Observação</th></tr></thead><tbody>{% for activity in trip.atividades %}<tr><td>{{ activity.nome }}</td><td>{{ activity.data }}</td><td>{{ activity.horario or "—" }}</td><td>{{ activity.local or "—" }}</td><td>{{ activity.situacao|capitalize }}</td><td>{% if activity.custo_estimado is not none %}{{ activity.custo_estimado|money }}{% else %}Não estimado{% endif %}</td><td>{{ activity.observacao or "—" }}</td></tr>{% endfor %}</tbody></table>
+      {% else %}<p class="report-empty">Nenhuma atividade planejada.</p>{% endif %}
+    </section>
+  </article>
+{% endblock %}

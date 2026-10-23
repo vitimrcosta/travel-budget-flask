@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% set heading = "Editar reserva" if item else "Adicionar reserva" %}
+{% block title %}{{ heading }} | Rota{% endblock %}
+{% block content %}
+  <div class="form-page-heading"><a class="back-link" href="{{ url_for('reservations_list', trip_id=trip.id) }}">← Voltar às reservas</a><span class="eyebrow">CONFIRMAÇÕES DA VIAGEM</span><h1>{{ heading }}</h1><p>{{ trip.destino }} · {{ trip.data_ida }} a {{ trip.data_volta }}</p></div>
+  <form class="edit-form reservation-form" method="post">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <div class="form-row">
+      <label>Tipo<select name="tipo" required><option value="">Selecione</option>{% for reservation_type in types %}<option value="{{ reservation_type }}" {% if request.form.get('tipo', item.tipo if item else '') == reservation_type %}selected{% endif %}>{{ reservation_type|capitalize }}</option>{% endfor %}</select></label>
+      <label>Fornecedor<input type="text" name="fornecedor" maxlength="150" required value="{{ request.form.get('fornecedor', item.fornecedor if item else '') }}" placeholder="Ex.: Hotel, companhia aérea"></label>
+    </div>
+    <div class="form-row">
+      <label>Data do check-in<input type="date" name="data_inicio" required value="{{ request.form.get('data_inicio', item.data_inicio|input_date if item else '') }}"></label>
+      <label>Horário do check-in<input type="time" name="horario_checkin" value="{{ request.form.get('horario_checkin', item.horario_checkin if item else '') }}"></label>
+    </div>
+    <div class="form-row">
+      <label>Data do check-out<input type="date" name="data_fim" required value="{{ request.form.get('data_fim', item.data_fim|input_date if item else '') }}"></label>
+      <label>Horário do check-out<input type="time" name="horario_checkout" value="{{ request.form.get('horario_checkout', item.horario_checkout if item else '') }}"></label>
+    </div>
+    <div class="form-row">
+      <label>Código de confirmação<input type="text" name="codigo_confirmacao" maxlength="150" value="{{ request.form.get('codigo_confirmacao', item.codigo_confirmacao if item else '') }}" placeholder="Opcional"></label>
+      <label>Situação<select name="situacao" required>{% for status in statuses %}<option value="{{ status }}" {% if request.form.get('situacao', item.situacao if item else 'pendente') == status %}selected{% endif %}>{{ status|capitalize }}</option>{% endfor %}</select></label>
+    </div>
+    <div class="form-row">
+      <label>Local ou endereço<input type="text" name="local" maxlength="255" value="{{ request.form.get('local', item.local if item else '') }}" placeholder="Opcional"></label>
+      <label>Prazo para cancelamento gratuito<input type="date" name="prazo_cancelamento" value="{{ request.form.get('prazo_cancelamento', item.prazo_cancelamento|input_date if item and item.prazo_cancelamento else '') }}"><small class="field-hint">Opcional; consulte as condições do fornecedor.</small></label>
+    </div>
+    <label>Observações<textarea name="observacao" rows="4" maxlength="2000" placeholder="Contato, instruções ou outros detalhes">{{ request.form.get('observacao', item.observacao if item else '') }}</textarea></label>
+    <p class="field-hint">Valores e pagamentos devem ser registrados em Gastos para não duplicar o orçamento. Comprovantes podem ser guardados em Documentos da viagem.</p>
+    <div class="form-actions"><a class="button button-secondary" href="{{ url_for('reservations_list', trip_id=trip.id) }}">Cancelar</a><button class="button button-primary" type="submit">Salvar reserva</button></div>
+  </form>
+{% endblock %}

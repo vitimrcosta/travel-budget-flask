@@ -1,0 +1,9 @@
+{% if attachments %}
+  <ul class="attachment-list">
+    {% for attachment in attachments %}
+      <li><a href="{{ url_for('download_trip_attachment', trip_id=trip.id, attachment_id=attachment.id) }}">{{ attachment.nome_original }}</a><small>{{ (attachment.tamanho_bytes / 1024)|round(0)|int }} KB</small><form method="post" action="{{ url_for('delete_trip_attachment', trip_id=trip.id, attachment_id=attachment.id) }}" onsubmit="return confirm('Remover este anexo?')"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button type="submit" aria-label="Remover {{ attachment.nome_original }}">Remover</button></form></li>
+    {% endfor %}
+  </ul>
+{% else %}
+  <p class="attachment-empty">Nenhum arquivo anexado.</p>
+{% endif %}

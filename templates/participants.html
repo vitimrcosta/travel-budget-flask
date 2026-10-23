@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% block title %}Pessoas de {{ trip.destino }} | Rota{% endblock %}
+{% block content %}
+  <div class="page-heading">
+    <div><a class="back-link" href="{{ url_for('dashboard', trip_id=trip.id) }}">← Voltar ao painel</a><span class="eyebrow">VIAGEM COMPARTILHADA</span><h1>Pessoas</h1><p class="subheading">{{ trip.destino }} · {{ trip.pessoas|length }} participante(s)</p></div>
+  </div>
+
+  <section class="backup-panel people-manager" aria-labelledby="people-title">
+    <div class="section-title-row"><div><span class="eyebrow">PARTICIPANTES</span><h2 id="people-title">Quem está nesta viagem?</h2></div></div>
+    <form class="people-add-form" method="post" action="{{ url_for('trip_people', trip_id=trip.id) }}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <label>Nome<input type="text" name="nome" maxlength="150" required placeholder="Ex.: Roberta"></label>
+      <button class="button button-primary" type="submit">Adicionar pessoa</button>
+    </form>
+    <div class="people-list">
+      {% for person in trip.pessoas %}
+        <article class="people-item"><div><strong>{{ person.nome }}</strong><small>{% if payments_by_person.get(person.id) %}Pagou {{ payments_by_person[person.id]|money }}{% else %}Sem pagamentos associados{% endif %}</small></div><form method="post" action="{{ url_for('delete_trip_person', trip_id=trip.id, participant_id=person.id) }}" onsubmit="return confirm('Remover {{ person.nome }} da viagem?')"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button type="submit">Remover</button></form></article>
+      {% else %}
+        <div class="empty-row"><span>Nenhuma pessoa cadastrada nesta viagem.</span></div>
+      {% endfor %}
+    </div>
+  </section>
+{% endblock %}

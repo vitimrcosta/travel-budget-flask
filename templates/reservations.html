@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+{% block title %}Reservas de {{ trip.destino }} | Rota{% endblock %}
+{% block content %}
+  <div class="page-heading">
+    <div><a class="back-link" href="{{ url_for('dashboard', trip_id=trip.id) }}#reservas">← Voltar ao painel</a><span class="eyebrow">CONFIRMAÇÕES DA VIAGEM</span><h1>Reservas</h1><p class="subheading">{{ trip.destino }} · {{ result_count }} resultado(s)</p></div>
+    <a class="button button-primary" href="{{ url_for('reservation_form', trip_id=trip.id) }}">Adicionar reserva <span aria-hidden="true">+</span></a>
+  </div>
+
+  <section class="expense-filters" aria-label="Filtros das reservas">
+    <form method="get" action="{{ url_for('reservations_list', trip_id=trip.id) }}" class="filter-form">
+      <label>Tipo<select name="tipo"><option value="">Todos</option>{% for reservation_type in types %}<option value="{{ reservation_type }}" {% if filters.tipo == reservation_type %}selected{% endif %}>{{ reservation_type|capitalize }}</option>{% endfor %}</select></label>
+      <label>Situação<select name="situacao"><option value="">Todas</option>{% for status in statuses %}<option value="{{ status }}" {% if filters.situacao == status %}selected{% endif %}>{{ status|capitalize }}</option>{% endfor %}</select></label>
+      <label class="filter-search">Fornecedor, código ou local<input type="search" name="busca" value="{{ filters.busca }}" placeholder="Buscar reserva"></label>
+      <div class="filter-actions"><button class="button button-primary" type="submit">Filtrar</button><a class="button button-secondary" href="{{ url_for('reservations_list', trip_id=trip.id) }}">Limpar</a></div>
+    </form>
+  </section>
+
+  <section class="reservation-results" aria-label="Reservas encontradas">
+    {% for reservation in reservations %}
+      <article class="reservation-card">
+        <div class="reservation-card-date"><span>CHECK-IN</span><time datetime="{{ reservation.data_inicio|input_date }}{% if reservation.horario_checkin %}T{{ reservation.horario_checkin }}{% endif %}">{{ reservation.data_inicio }}{% if reservation.horario_checkin %} · {{ reservation.horario_checkin }}{% endif %}</time><span>CHECK-OUT {{ reservation.data_fim }}{% if reservation.horario_checkout %} · {{ reservation.horario_checkout }}{% endif %}</span></div>
+        <div class="reservation-card-main">
+          <div class="activity-card-heading"><h2>{{ reservation.fornecedor }}</h2><span class="reservation-status {{ reservation.situacao }}">{{ reservation.situacao|capitalize }}</span></div>
+          <div class="activity-card-meta"><span><strong>TIPO</strong> {{ reservation.tipo|capitalize }}</span>{% if reservation.codigo_confirmacao %}<span><strong>CÓDIGO</strong> {{ reservation.codigo_confirmacao }}</span>{% endif %}{% if reservation.local %}<span><strong>LOCAL</strong> {{ reservation.local }}</span>{% endif %}{% if reservation.prazo_cancelamento %}<span><strong>CANCELAMENTO ATÉ</strong> {{ reservation.prazo_cancelamento }}</span>{% endif %}</div>
+          {% if reservation.alerta_prazo %}<p class="reservation-deadline-alert" role="status">{{ reservation.alerta_prazo }}</p>{% endif %}
+          {% if reservation.observacao %}<p class="activity-card-note">{{ reservation.observacao }}</p>{% endif %}
+        </div>
+        <div class="activity-card-actions"><a class="activity-action-link" href="{{ url_for('reservation_form', trip_id=trip.id, item_id=reservation.id) }}">Editar</a><form method="post" action="{{ url_for('delete_reservation', trip_id=trip.id, item_id=reservation.id) }}" onsubmit="return confirm('Remover esta reserva?')"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="activity-action-link activity-action-danger" type="submit">Remover</button></form></div>
+      </article>
+    {% else %}
+      <div class="empty-row"><span>{% if trip.reservas %}Nenhuma reserva corresponde aos filtros.{% else %}Nenhuma reserva cadastrada nesta viagem.{% endif %}</span>{% if not trip.reservas %}<a href="{{ url_for('reservation_form', trip_id=trip.id) }}">Adicionar primeira reserva</a>{% endif %}</div>
+    {% endfor %}
+  </section>
+{% endblock %}

@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% block title %}{{ "Editar viagem" if trip else "Nova viagem" }} | Rota{% endblock %}
+{% block content %}
+  <div class="form-page-heading"><a class="back-link" href="{{ url_for('dashboard', trip_id=trip.id) if trip else url_for('index') }}">← Voltar</a><span class="eyebrow">{{ "CONFIGURAÇÃO DA VIAGEM" if trip else "NOVO DESTINO" }}</span><h1>{{ "Editar viagem" if trip else "Planejar uma viagem" }}</h1><p>Defina o destino e o período. O orçamento será detalhado por categoria.</p></div>
+  {% set submitted_code = request.form.get('bandeira', trip.bandeira if trip else '')|upper %}
+  {% set selected_code = submitted_code if submitted_code in countries_by_code else '' %}
+  {% set selected_country = countries_by_code.get(selected_code) %}
+  <script type="application/json" id="country-list">{{ countries|tojson }}</script>
+  <script src="{{ url_for('static', filename='country-picker.js') }}" defer></script>
+  <form class="edit-form" method="post">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <div class="destination-fields">
+      <label>Destino<input type="text" name="destino" maxlength="150" required value="{{ request.form.get('destino', trip.destino if trip else '') }}" placeholder="Ex.: Lisboa, Portugal"></label>
+      <div class="country-picker" data-country-picker data-flags-base="{{ url_for('static', filename='flags/') }}">
+        <label for="trip-country-search">País <span>(opcional)</span></label>
+        <div class="country-search-wrap">
+          {% if selected_country %}<img class="country-search-flag" src="{{ url_for('static', filename='flags/' ~ selected_code|lower ~ '.svg') }}" alt="" aria-hidden="true">{% else %}<img class="country-search-flag" alt="" aria-hidden="true" hidden>{% endif %}
+          <input id="trip-country-search" type="text" value="{{ selected_country.name if selected_country else request.form.get('pais_busca', '') }}" placeholder="Pesquisar país..." role="combobox" aria-autocomplete="list" aria-haspopup="listbox" aria-expanded="false" aria-controls="trip-country-options" autocomplete="off">
+          <button class="country-clear" type="button" aria-label="Limpar país" {% if not selected_code %}hidden{% endif %}>×</button>
+        </div>
+        <input type="hidden" name="bandeira" value="{{ selected_code }}">
+        <div class="country-picker-panel" id="trip-country-options" role="listbox" aria-label="Países" hidden></div>
+        <div class="country-selection-error" aria-live="polite"></div>
+        </div>
+    </div>
+    <div class="form-row"><label>Data de ida<input type="date" name="data_ida" required value="{{ request.form.get('data_ida', trip.data_ida|input_date if trip else '') }}"></label><label>Data de volta<input type="date" name="data_volta" required value="{{ request.form.get('data_volta', trip.data_volta|input_date if trip else '') }}"></label></div>
+    <div class="form-actions"><a class="button button-secondary" href="{{ url_for('dashboard', trip_id=trip.id) if trip else url_for('index') }}">Cancelar</a><button class="button button-primary" type="submit">{{ "Salvar alterações" if trip else "Criar viagem" }}</button></div>
+  </form>
+{% endblock %}

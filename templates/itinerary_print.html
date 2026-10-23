@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% block title %}Roteiro de viagem: {{ trip.destino }} | Rota{% endblock %}
+{% block content %}
+  <div class="report-toolbar"><a class="back-link" href="{{ url_for('activities_list', trip_id=trip.id) }}">← Voltar ao roteiro</a><button class="button button-primary" type="button" onclick="window.print()">Imprimir / salvar PDF</button></div>
+  <article class="report-sheet itinerary-sheet">
+    {% set trip_country = countries_by_code.get(trip.bandeira) %}
+    <header class="itinerary-cover">
+      <span class="eyebrow">ROTA · ROTEIRO DE VIAGEM</span>
+      <h1>{% if trip_country %}<img class="itinerary-country-flag" src="{{ url_for('static', filename='flags/' ~ trip_country.code|lower ~ '.svg') }}" alt="Bandeira de {{ trip_country.name }}">{% endif %}{{ trip.destino }}{% if trip_country %}, {{ trip_country.name }}{% endif %}</h1>
+      <p>{{ trip.data_ida }} até {{ trip.data_volta }}</p>
+      <div class="itinerary-cover-rule"></div>
+      <div class="itinerary-cover-meta"><span>ROTEIRO COMPLETO</span><strong>{{ activity_count }} atividade(s)</strong></div>
+    </header>
+
+    <main class="itinerary-print-days">
+      {% for day in activity_days %}
+        <section class="itinerary-print-day" aria-labelledby="print-day-{{ loop.index }}">
+          <header class="itinerary-print-day-heading"><h2 id="print-day-{{ loop.index }}">{{ day.data }}</h2><span>{{ day["items"]|length }} atividade(s)</span></header>
+          <div class="itinerary-print-list">
+            {% for activity in day["items"] %}
+              <article class="itinerary-print-item">
+                <div class="itinerary-print-time">{{ activity.horario or "—" }}</div>
+                <div class="itinerary-print-content">
+                  <div class="itinerary-print-title"><h3>{{ activity.nome }}</h3><span class="activity-status {{ activity.situacao }}">{{ activity.situacao|capitalize }}</span></div>
+                  {% if activity.local %}<p class="itinerary-print-location"><strong>LOCAL</strong> {{ activity.local }}</p>{% endif %}
+                  {% if activity.observacao %}<p class="itinerary-print-note">{{ activity.observacao }}</p>{% endif %}
+                  {% if activity.custo_estimado is not none %}<p class="itinerary-print-cost"><strong>CUSTO ESTIMADO</strong> {{ activity.custo_estimado|money }}</p>{% endif %}
+                </div>
+              </article>
+            {% endfor %}
+          </div>
+        </section>
+      {% else %}
+        <p class="itinerary-print-empty">Nenhuma atividade foi cadastrada para esta viagem.</p>
+      {% endfor %}
+    </main>
+    <footer class="itinerary-print-footer"><span>{{ trip.destino }}</span><span>ROTA · CONTROLE DE VIAGEM</span></footer>
+  </article>
+{% endblock %}
