@@ -14,6 +14,7 @@ import backup_service
 import attachment_service
 import db_service
 import main
+import web_app
 from currency_rates import ExchangeRateError, get_historical_rate
 from backup_service import make_trip_export, parse_backup_archive, parse_backup_bytes, validate_backup_document, write_daily_backup
 from web_app import add_reservation_deadline_alerts, app, find_next_activity
@@ -92,6 +93,61 @@ class BackupServiceTests(unittest.TestCase):
         backup_service.BACKUP_DIR = self.original_backup_dir
         attachment_service.ATTACHMENT_DIR = self.original_attachment_dir
         self.temp_dir.cleanup()
+
+    def test_cloudinary_asset_url_is_parsed_and_other_hosts_are_rejected(self):
+        with patch.dict("os.environ", {"CLOUDINARY_CLOUD_NAME": "test-cloud"}):
+            asset = attachment_service._cloudinary_asset(
+                "https://res.cloudinary.com/test-cloud/raw/upload/v123/travel-attachments/7/file.pdf"
+            )
+            self.assertEqual(asset, ("travel-attachments/7/file.pdf", "raw"))
+            with self.assertRaises(attachment_service.AttachmentError):
+                attachment_service._cloudinary_asset("https://example.com/file.pdf")
+
+    def test_cloudinary_upload_and_delete_use_provider_without_local_files(self):
+        import cloudinary.uploader
+
+        with patch.dict("os.environ", {
+            "CLOUDINARY_CLOUD_NAME": "test-cloud",
+            "CLOUDINARY_API_KEY": "test-key",
+            "CLOUDINARY_API_SECRET": "test-secret",
+        }):
+            prepared = attachment_service.prepare_bytes(b"%PDF-1.7\nrecibo", "recibo.pdf")
+            secure_url = "https://res.cloudinary.com/test-cloud/raw/upload/v123/travel-attachments/7/test.pdf"
+            with patch("cloudinary.config") as configure, patch(
+                "cloudinary.uploader.upload", return_value={"secure_url": secure_url}
+            ) as upload, patch("cloudinary.uploader.destroy", return_value={"result": "ok"}) as destroy:
+                metadata = attachment_service.save_prepared_upload(7, prepared)
+                self.assertEqual(metadata["nome_armazenado"], secure_url)
+                self.assertEqual(metadata["mime_type"], "application/pdf")
+                configure.assert_called_once()
+                upload.assert_called_once()
+
+                attachment_service.delete_attachment(secure_url)
+
+            self.assertEqual(destroy.call_args.args[0], "travel-attachments/7/test.pdf")
+            self.assertEqual(destroy.call_args.kwargs["resource_type"], "raw")
+
+    def test_cloudinary_obrigatorio_sem_credenciais_falha_explicitamente(self):
+        with patch.dict("os.environ", {"CLOUDINARY_REQUIRED": "true"}, clear=True):
+            with self.assertRaisesRegex(attachment_service.AttachmentError, "obrigatório"):
+                attachment_service.ensure_storage_configuration()
+
+    def test_mysql_obrigatorio_sem_configuracao_nao_cai_para_json(self):
+        with patch.dict("os.environ", {"REQUIRE_MYSQL": "true"}, clear=True):
+            with self.assertRaisesRegex(RuntimeError, "MySQL obrigatório"):
+                db_service.StorageManager()
+
+    def test_leitura_cloudinary_e_validada_e_limitada(self):
+        with patch.dict("os.environ", {"CLOUDINARY_CLOUD_NAME": "test-cloud"}):
+            response = Mock()
+            response.read.return_value = b"%PDF-1.7\nrecibo"
+            response.__enter__ = Mock(return_value=response)
+            response.__exit__ = Mock(return_value=False)
+            with patch("attachment_service.urllib.request.urlopen", return_value=response):
+                data = attachment_service.read_attachment(
+                    "https://res.cloudinary.com/test-cloud/raw/upload/v123/travel-attachments/7/file.pdf"
+                )
+            self.assertEqual(data, b"%PDF-1.7\nrecibo")
 
     def sample_trip(self, destination="Rota Backup"):
         return {
@@ -195,6 +251,9 @@ class WebAppTests(unittest.TestCase):
         self.original_mysql_enabled = db_service.storage_manager.mysql_enabled
         self.original_backup_dir = backup_service.BACKUP_DIR
         self.original_attachment_dir = attachment_service.ATTACHMENT_DIR
+        self.original_require_login = web_app.REQUIRE_LOGIN
+        self.original_login_username = web_app.LOGIN_USERNAME
+        self.original_login_password = web_app.LOGIN_PASSWORD
         db_service.DATA_FILE = Path(self.temp_dir.name) / "web_data.json"
         backup_service.BACKUP_DIR = Path(self.temp_dir.name) / "backups"
         attachment_service.ATTACHMENT_DIR = Path(self.temp_dir.name) / "attachments"
@@ -207,7 +266,52 @@ class WebAppTests(unittest.TestCase):
         db_service.storage_manager.mysql_enabled = self.original_mysql_enabled
         backup_service.BACKUP_DIR = self.original_backup_dir
         attachment_service.ATTACHMENT_DIR = self.original_attachment_dir
+        web_app.REQUIRE_LOGIN = self.original_require_login
+        web_app.LOGIN_USERNAME = self.original_login_username
+        web_app.LOGIN_PASSWORD = self.original_login_password
         self.temp_dir.cleanup()
+
+    def test_login_compartilhado_protege_rotas_e_rejeita_redirect_externo(self):
+        web_app.REQUIRE_LOGIN = True
+        web_app.LOGIN_USERNAME = "casal"
+        web_app.LOGIN_PASSWORD = "senha-de-teste"
+
+        protected = self.client.get("/")
+        self.assertEqual(protected.status_code, 302)
+        self.assertIn("/login", protected.headers["Location"])
+        self.assertEqual(self.client.get("/healthz").status_code, 200)
+
+        login_page = self.client.get("/login?next=https://example.com")
+        self.assertEqual(login_page.status_code, 200)
+        self.assertIn('name="next" value=""', login_page.get_data(as_text=True))
+
+        invalid_login = self.client.post(
+            "/login",
+            data={"username": "casal", "password": "incorreta"},
+        )
+        self.assertEqual(invalid_login.status_code, 200)
+        self.assertIn("incorretos", invalid_login.get_data(as_text=True))
+
+        logged_in = self.client.post(
+            "/login",
+            data={"username": "casal", "password": "senha-de-teste", "next": "https://example.com"},
+        )
+        self.assertEqual(logged_in.status_code, 302)
+        self.assertTrue(logged_in.headers["Location"].endswith("/"))
+        self.assertEqual(self.client.get("/").status_code, 200)
+
+        self.assertEqual(self.client.post("/logout").status_code, 302)
+        self.assertEqual(self.client.get("/").status_code, 302)
+
+    def test_interface_informa_que_backup_diario_foi_desativado_no_deploy(self):
+        with patch.dict("os.environ", {"DISABLE_DAILY_BACKUPS": "true"}):
+            response = self.client.get("/backups/restore")
+
+        self.assertEqual(response.status_code, 200)
+        page = response.get_data(as_text=True)
+        self.assertIn("Desativado no deploy", page)
+        self.assertIn("disco do serviço hospedado não é persistente", page)
+        self.assertNotIn("Pasta de backup", page)
 
     def test_crud_web_com_validacao_de_periodo(self):
         response = self.client.get("/")

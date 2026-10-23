@@ -2,7 +2,7 @@
 
 Aplicação web pessoal para organizar viagens, roteiro, reservas e orçamento. A interface é em português e foi projetada para uso local por você e seus acompanhantes.
 
-> **Uso local:** o sistema não possui autenticação de usuários. Não o exponha diretamente à internet nem use o servidor de desenvolvimento Flask em produção. Os dados e anexos são armazenados localmente ou no MySQL configurado.
+> **Uso local:** por padrão, o sistema não exige login e usa armazenamento local como fallback. Para publicar na internet, configure autenticação, MySQL obrigatório e armazenamento externo conforme a seção de deploy abaixo.
 
 ## Funcionalidades
 
@@ -24,6 +24,7 @@ As situações de atividade são `Planejada`, `Reservada`, `Realizada` e `Cancel
 
 - Python 3.9 ou superior.
 - MySQL opcional. Se MySQL não estiver disponível, o sistema usa armazenamento JSON local.
+- Gunicorn e Cloudinary são usados no deploy; suas dependências já estão em `requirements.txt`.
 - Acesso à internet somente para buscar cotações automaticamente e carregar as fontes externas usadas pela interface.
 
 As dependências Python da aplicação estão listadas em [requirements.txt](requirements.txt). Não é necessário instalar dependências separadas para executar os testes: eles usam `unittest`, incluído na biblioteca padrão do Python.
@@ -49,13 +50,13 @@ Abra [http://127.0.0.1:5000](http://127.0.0.1:5000). Para usar a interface de te
 
 Sem configuração adicional, o sistema tenta conectar ao MySQL e usa `viagem_data.json` como fallback quando não consegue. O JSON local é ignorado pelo Git.
 
-Para configurar o MySQL, copie o exemplo e preencha `.env` com as credenciais locais:
+Para configurar o MySQL, crie primeiro o banco indicado em `DB_NAME`, copie o exemplo e preencha `.env` com as credenciais locais:
 
 ```powershell
 Copy-Item .env.example .env
 ```
 
-O arquivo `.env` é ignorado pelo Git e **não deve ser compartilhado**. Alternativamente, configure as variáveis `DB_HOST`, `DB_PORT`, `DB_USER`, `DB_PASSWORD` e `DB_NAME` no ambiente. A conta MySQL usada pela aplicação precisa ter permissões para criar/usar o banco e criar/alterar as tabelas necessárias. O código cria o banco e aplica atualizações compatíveis do schema na inicialização quando as permissões permitem.
+O arquivo `.env` é ignorado pelo Git e **não deve ser compartilhado**. Alternativamente, configure as variáveis `DB_HOST`, `DB_PORT`, `DB_USER`, `DB_PASSWORD` e `DB_NAME` no ambiente. A conta MySQL usada pela aplicação precisa ter permissões para criar e alterar as tabelas no banco selecionado. O app cria as tabelas e aplica atualizações compatíveis do schema na inicialização.
 
 O esquema atual está em [database/schema.sql](database/schema.sql). Para ambientes administrados manualmente, faça backup do banco e confira as instruções de migração em [database/migrations](database/migrations/) antes de aplicar qualquer script. Não execute migrações que já tenham sido aplicadas.
 
@@ -70,6 +71,23 @@ Execute todos os testes com:
 ```powershell
 .\.venv\Scripts\python.exe -m unittest -v
 ```
+
+## Publicação no Render com Aiven e Cloudinary
+
+O arquivo [render.yaml](render.yaml) configura um serviço web Render com Gunicorn, health check, MySQL obrigatório, login compartilhado, cookies HTTPS e Cloudinary para anexos e capas. Ao conectar o repositório como Blueprint, configure no painel os valores secretos solicitados:
+
+- `DB_PASSWORD`: senha do usuário MySQL do Aiven.
+- `APP_LOGIN_USERNAME` e `APP_LOGIN_PASSWORD`: credenciais compartilhadas para acessar o site.
+- `CLOUDINARY_API_KEY` e `CLOUDINARY_API_SECRET`: credenciais da conta Cloudinary.
+- `APP_SECRET_KEY` é gerada pelo Blueprint; mantenha-a estável entre deploys.
+
+O nome da nuvem Cloudinary e o host/porta/usuário/banco Aiven estão pré-preenchidos no Blueprint com os dados já fornecidos. O serviço exige `DB_SSL_REQUIRED=true`. Sem `DB_SSL_CA`, o MySQL Connector negocia TLS criptografado, mas não valida a identidade do servidor; para validação completa, adicione o certificado CA do Aiven como arquivo secreto no Render e configure `DB_SSL_CA` com o caminho desse arquivo. Nunca coloque senha, API secret ou chave privada no Git ou neste arquivo. Use uma senha forte e exclusiva para o login compartilhado.
+
+O app falha ao iniciar se o MySQL ou Cloudinary obrigatórios não estiverem configurados, em vez de gravar dados no disco efêmero do Render. Os arquivos sobem para o Cloudinary; os metadados ficam no Aiven. Os arquivos usam URLs aleatórias e não são exibidos diretamente na interface, mas o Cloudinary os entrega como recursos não autenticados para quem obtiver a URL; não compartilhe esses links. Os backups diários locais são desativados no Render porque o disco do serviço não é persistente. Exporte regularmente um ZIP pelo próprio app e guarde-o fora do Render; os backups do banco também devem permanecer habilitados no Aiven.
+
+Para migrar as viagens e anexos locais, antes de publicar exporte cada viagem pelo aplicativo local como ZIP. Depois que o site hospedado estiver configurado, entre com o login compartilhado, abra **Restaurar backup**, envie o ZIP e confirme a restauração. O app cria cópias das viagens e envia seus anexos ao Cloudinary. Não use somente o JSON se precisar preservar comprovantes e capas.
+
+O campo `anexo.nome_armazenado` foi ampliado para guardar URLs Cloudinary. A inicialização do app aplica a alteração ao banco existente; o script correspondente está em [20261024_cloudinary_attachment_urls.sql](database/migrations/20261024_cloudinary_attachment_urls.sql). Antes de aplicar manualmente, faça backup do banco e confirme que a migração ainda não foi executada.
 
 ## Créditos das bandeiras
 

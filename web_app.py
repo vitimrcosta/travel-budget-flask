@@ -1,4 +1,5 @@
 import io
+import hmac
 import json
 import os
 import secrets
@@ -6,6 +7,7 @@ from datetime import date, datetime, time as datetime_time
 from decimal import Decimal, InvalidOperation, ROUND_HALF_UP
 from math import ceil
 from pathlib import Path
+from urllib.parse import urlsplit
 
 from flask import Flask, abort, flash, jsonify, redirect, render_template, request, send_file, session, url_for
 from flask_wtf.csrf import CSRFProtect
@@ -47,11 +49,73 @@ COUNTRIES = json.loads(
 COUNTRIES_BY_CODE = {country["code"]: country for country in COUNTRIES}
 
 app = Flask(__name__)
-app.config["SECRET_KEY"] = os.getenv("APP_SECRET_KEY") or secrets.token_hex(32)
+REQUIRE_LOGIN = os.getenv("REQUIRE_LOGIN", "").strip().lower() in {"1", "true", "yes"}
+APP_SECRET_KEY = os.getenv("APP_SECRET_KEY", "").strip()
+LOGIN_USERNAME = os.getenv("APP_LOGIN_USERNAME", "")
+LOGIN_PASSWORD = os.getenv("APP_LOGIN_PASSWORD", "")
+if REQUIRE_LOGIN and not APP_SECRET_KEY:
+    raise RuntimeError("APP_SECRET_KEY precisa estar configurada quando REQUIRE_LOGIN estiver ativo.")
+if REQUIRE_LOGIN and (not LOGIN_USERNAME or not LOGIN_PASSWORD):
+    raise RuntimeError("Configure APP_LOGIN_USERNAME e APP_LOGIN_PASSWORD para habilitar o login.")
+
+app.config["SECRET_KEY"] = APP_SECRET_KEY or secrets.token_hex(32)
 app.config["SESSION_COOKIE_HTTPONLY"] = True
 app.config["SESSION_COOKIE_SAMESITE"] = "Lax"
+app.config["SESSION_COOKIE_SECURE"] = os.getenv(
+    "SESSION_COOKIE_SECURE", "true" if REQUIRE_LOGIN else "false"
+).strip().lower() in {"1", "true", "yes"}
 app.config["MAX_CONTENT_LENGTH"] = backup_service.MAX_BACKUP_BYTES + (1024 * 1024)
 CSRFProtect(app)
+attachment_service.ensure_storage_configuration()
+
+
+def safe_next_url(value):
+    if not value or "\\" in value:
+        return None
+    parsed = urlsplit(value)
+    if parsed.scheme or parsed.netloc or not parsed.path.startswith("/") or parsed.path.startswith("//"):
+        return None
+    return value
+
+
+@app.before_request
+def require_shared_login():
+    if not REQUIRE_LOGIN or request.endpoint in {None, "login", "healthz", "static"}:
+        return None
+    if session.get("authenticated"):
+        return None
+    return redirect(url_for("login", next=request.full_path if request.query_string else request.path))
+
+
+@app.get("/healthz")
+def healthz():
+    return jsonify(status="ok")
+
+
+@app.route("/login", methods=["GET", "POST"])
+def login():
+    if not REQUIRE_LOGIN:
+        abort(404)
+    if session.get("authenticated"):
+        return redirect(url_for("index"))
+    next_url = safe_next_url(request.values.get("next"))
+    if request.method == "POST":
+        username = request.form.get("username", "")
+        password = request.form.get("password", "")
+        if hmac.compare_digest(username.encode("utf-8"), LOGIN_USERNAME.encode("utf-8")) and hmac.compare_digest(
+            password.encode("utf-8"), LOGIN_PASSWORD.encode("utf-8")
+        ):
+            session.clear()
+            session["authenticated"] = True
+            return redirect(next_url or url_for("index"))
+        flash("Usuário ou senha incorretos.", "error")
+    return render_template("login.html", next_url=next_url or "")
+
+
+@app.post("/logout")
+def logout():
+    session.clear()
+    return redirect(url_for("login"))
 
 
 @app.template_filter("money")
@@ -98,16 +162,19 @@ def format_payment_people(payments):
 
 @app.context_processor
 def add_template_context():
+    daily_backups_disabled = os.getenv("DISABLE_DAILY_BACKUPS", "").strip().lower() in {"1", "true", "yes"}
     return {
-        "trips": storage_manager.list_viagens(),
+        "trips": [] if request.endpoint == "login" else storage_manager.list_viagens(),
         "selected_trip_id": session.get("selected_trip_id"),
         "mysql_available": storage_manager.mysql_enabled,
         "currency_codes": SUPPORTED_CURRENCIES,
         "currency_names": CURRENCY_NAMES,
         "backup_directory": str(backup_service.BACKUP_DIR),
-        "backup_available": storage_manager.backup_error is None,
+        "backup_available": not daily_backups_disabled and storage_manager.backup_error is None,
+        "daily_backups_disabled": daily_backups_disabled,
         "countries": COUNTRIES,
         "countries_by_code": COUNTRIES_BY_CODE,
+        "require_login": REQUIRE_LOGIN,
     }
 
 
@@ -248,10 +315,11 @@ def trip_cover_image(trip_id, attachment_id):
     ), None)
     if cover is None or cover.get("mime_type") not in {"image/jpeg", "image/png"}:
         abort(404)
-    path = attachment_service.open_attachment(cover["nome_armazenado"])
-    if not path.is_file():
+    try:
+        image_data = attachment_service.read_attachment(cover["nome_armazenado"])
+    except (OSError, attachment_service.AttachmentError):
         abort(404)
-    return send_file(path, mimetype=cover["mime_type"], as_attachment=False, max_age=0)
+    return send_file(io.BytesIO(image_data), mimetype=cover["mime_type"], as_attachment=False, max_age=0)
 
 
 def report_attachment_error(error):
@@ -430,11 +498,12 @@ def download_trip_attachment(trip_id, attachment_id):
     )
     if attachment is None:
         abort(404)
-    path = attachment_service.open_attachment(attachment["nome_armazenado"])
-    if not path.is_file():
+    try:
+        attachment_data = attachment_service.read_attachment(attachment["nome_armazenado"])
+    except (OSError, attachment_service.AttachmentError):
         abort(404)
     return send_file(
-        path,
+        io.BytesIO(attachment_data),
         mimetype=attachment["mime_type"],
         as_attachment=True,
         download_name=attachment["nome_original"],

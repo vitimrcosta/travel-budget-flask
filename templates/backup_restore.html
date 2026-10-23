@@ -6,9 +6,15 @@
   </div>
 
   <section class="backup-panel" aria-labelledby="backup-title">
-    <div class="section-title-row"><div><span class="eyebrow">CÓPIA AUTOMÁTICA</span><h2 id="backup-title">Backups diários</h2></div><span class="backup-state {% if backup_available %}available{% else %}unavailable{% endif %}">{{ "Ativo" if backup_available else "Verificar pasta" }}</span></div>
-    {% if backup_available %}<p>A aplicação guarda uma cópia por dia, antes de alterações, e mantém até 30 arquivos.</p>{% else %}<p class="backup-warning">Não foi possível gravar o backup automático. Verifique as permissões da pasta de backup.</p>{% endif %}
-    <dl class="backup-location"><dt>Pasta de backup</dt><dd>{{ backup_directory }}</dd></dl>
+    <div class="section-title-row"><div><span class="eyebrow">CÓPIA AUTOMÁTICA</span><h2 id="backup-title">Backups diários</h2></div><span class="backup-state {% if daily_backups_disabled %}disabled{% elif backup_available %}available{% else %}unavailable{% endif %}">{{ "Desativado no deploy" if daily_backups_disabled else ("Ativo" if backup_available else "Verificar pasta") }}</span></div>
+    {% if daily_backups_disabled %}
+      <p>Backups diários locais estão desativados porque o disco do serviço hospedado não é persistente. Exporte um ZIP regularmente e mantenha uma cópia fora do site.</p>
+    {% elif backup_available %}
+      <p>A aplicação guarda uma cópia por dia, antes de alterações, e mantém até 30 arquivos.</p>
+    {% else %}
+      <p class="backup-warning">Não foi possível gravar o backup automático. Verifique as permissões da pasta de backup.</p>
+    {% endif %}
+    {% if not daily_backups_disabled %}<dl class="backup-location"><dt>Pasta de backup</dt><dd>{{ backup_directory }}</dd></dl>{% endif %}
   </section>
 
   {% if preview %}

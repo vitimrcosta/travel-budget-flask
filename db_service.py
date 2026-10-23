@@ -1,4 +1,5 @@
 import json
+import os
 from copy import deepcopy
 from datetime import datetime
 from decimal import Decimal, ROUND_HALF_UP
@@ -21,6 +22,13 @@ class StorageManager:
         self.mysql_enabled = False
 
         try:
+            if os.getenv("REQUIRE_MYSQL", "").strip().lower() in {"1", "true", "yes"}:
+                required_settings = ("DB_HOST", "DB_USER", "DB_PASSWORD", "DB_NAME")
+                missing = [name for name in required_settings if not os.getenv(name)]
+                if missing:
+                    raise RuntimeError(
+                        "MySQL obrigatório, mas faltam configurações: " + ", ".join(missing)
+                    )
             import mysql.connector
 
             self.conn = mysql.connector.connect(**DB_CONFIG)
@@ -30,10 +38,12 @@ class StorageManager:
             self.mysql_error = exc
             self.mysql_enabled = False
             self.conn = None
+            if os.getenv("REQUIRE_MYSQL", "").strip().lower() in {"1", "true", "yes"}:
+                raise RuntimeError("Não foi possível conectar ao MySQL obrigatório.") from exc
         self._ensure_daily_backup()
 
     def _ensure_daily_backup(self):
-        if self._backup_suspended:
+        if self._backup_suspended or os.getenv("DISABLE_DAILY_BACKUPS", "").strip().lower() in {"1", "true", "yes"}:
             return
         try:
             backup_service.write_daily_backup(self.list_viagens())
@@ -46,8 +56,6 @@ class StorageManager:
             return
 
         cursor = self.conn.cursor()
-        cursor.execute("CREATE DATABASE IF NOT EXISTS controle_viagem CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci")
-        cursor.execute("USE controle_viagem")
         cursor.execute(
             """
             CREATE TABLE IF NOT EXISTS viagem (
@@ -235,7 +243,7 @@ class StorageManager:
                 gasto_id INT NULL,
                 atividade_id INT NULL,
                 nome_original VARCHAR(255) NOT NULL,
-                nome_armazenado VARCHAR(80) NOT NULL,
+                nome_armazenado VARCHAR(768) NOT NULL,
                 mime_type VARCHAR(80) NOT NULL,
                 tamanho_bytes INT UNSIGNED NOT NULL,
                 is_capa BOOLEAN NOT NULL DEFAULT FALSE,
@@ -254,6 +262,10 @@ class StorageManager:
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
             """
         )
+        cursor.execute("SHOW COLUMNS FROM anexo LIKE 'nome_armazenado'")
+        stored_name_column = cursor.fetchone()
+        if stored_name_column and stored_name_column[1].lower() != "varchar(768)":
+            cursor.execute("ALTER TABLE anexo MODIFY COLUMN nome_armazenado VARCHAR(768) NOT NULL")
         for constraint, column, referenced_table, index in (
             ("fk_anexo_gasto", "gasto_id", "gasto", "idx_anexo_gasto"),
             ("fk_anexo_atividade", "atividade_id", "atividade", "idx_anexo_atividade"),

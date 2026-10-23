@@ -63,6 +63,12 @@
           </button>
           <a class="topbar-utility-link" href="{{ url_for('restore_backup') }}">Restaurar backup</a>
           <a class="button button-primary topbar-link" href="{{ url_for('new_trip') }}">Nova viagem <span aria-hidden="true"><svg viewBox="0 0 16 16"><path d="M8 3v10M3 8h10"/></svg></span></a>
+          {% if require_login %}
+            <form class="topbar-logout-form" method="post" action="{{ url_for('logout') }}">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              <button class="topbar-utility-link" type="submit">Sair</button>
+            </form>
+          {% endif %}
         </div>
       </header>
 

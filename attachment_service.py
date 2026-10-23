@@ -1,8 +1,12 @@
+import io
 import os
 import re
 import tempfile
+import urllib.error
+import urllib.request
 import uuid
 from pathlib import Path
+from urllib.parse import unquote, urlsplit
 
 from werkzeug.utils import secure_filename
 
@@ -26,6 +30,41 @@ _MIME_TYPES = {
 
 class AttachmentError(ValueError):
     pass
+
+
+def ensure_storage_configuration():
+    cloud_name = os.getenv("CLOUDINARY_CLOUD_NAME", "").strip()
+    api_key = os.getenv("CLOUDINARY_API_KEY", "").strip()
+    api_secret = os.getenv("CLOUDINARY_API_SECRET", "").strip()
+    configured = (cloud_name, api_key, api_secret)
+    required = os.getenv("CLOUDINARY_REQUIRED", "").strip().lower() in {"1", "true", "yes"}
+    if any(configured) and not all(configured):
+        raise AttachmentError(
+            "Configure CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY e CLOUDINARY_API_SECRET."
+        )
+    if required and not all(configured):
+        raise AttachmentError("Cloudinary é obrigatório, mas as credenciais não estão configuradas.")
+
+
+def cloudinary_enabled():
+    return all(os.getenv(key, "").strip() for key in (
+        "CLOUDINARY_CLOUD_NAME",
+        "CLOUDINARY_API_KEY",
+        "CLOUDINARY_API_SECRET",
+    ))
+
+
+def is_cloudinary_url(value):
+    if not isinstance(value, str):
+        return False
+    parsed = urlsplit(value)
+    cloud_name = os.getenv("CLOUDINARY_CLOUD_NAME", "").strip()
+    return (
+        parsed.scheme == "https"
+        and parsed.hostname == "res.cloudinary.com"
+        and bool(cloud_name)
+        and parsed.path.startswith(f"/{cloud_name}/")
+    )
 
 
 def prepare_upload(upload):
@@ -59,6 +98,11 @@ def prepare_bytes(data, original_name):
 
 
 def save_prepared_upload(trip_id, prepared):
+    if cloudinary_enabled():
+        return _save_cloudinary_upload(trip_id, prepared)
+    if os.getenv("CLOUDINARY_REQUIRED", "").strip().lower() in {"1", "true", "yes"}:
+        raise AttachmentError("O armazenamento Cloudinary é obrigatório e não está configurado.")
+
     stored_name = f"{int(trip_id)}/{uuid.uuid4().hex}{prepared['extension']}"
     destination = _safe_path(stored_name)
     destination.parent.mkdir(parents=True, exist_ok=True)
@@ -81,6 +125,96 @@ def save_prepared_upload(trip_id, prepared):
     }
 
 
+def _save_cloudinary_upload(trip_id, prepared):
+    import cloudinary
+    import cloudinary.uploader
+
+    cloudinary.config(
+        cloud_name=os.environ["CLOUDINARY_CLOUD_NAME"],
+        api_key=os.environ["CLOUDINARY_API_KEY"],
+        api_secret=os.environ["CLOUDINARY_API_SECRET"],
+        secure=True,
+    )
+    resource_type = "raw" if prepared["mime_type"] == "application/pdf" else "image"
+    public_id = f"travel-attachments/{int(trip_id)}/{uuid.uuid4().hex}"
+    if resource_type == "raw":
+        public_id += prepared["extension"]
+    try:
+        result = cloudinary.uploader.upload(
+            io.BytesIO(prepared["data"]),
+            public_id=public_id,
+            resource_type=resource_type,
+            overwrite=False,
+            unique_filename=False,
+        )
+    except Exception as error:
+        raise AttachmentError("Não foi possível enviar o arquivo para o Cloudinary.") from error
+
+    secure_url = result.get("secure_url")
+    if not is_cloudinary_url(secure_url):
+        try:
+            cloudinary.uploader.destroy(
+                result.get("public_id", public_id),
+                resource_type=resource_type,
+                invalidate=True,
+            )
+        except Exception as error:
+            raise AttachmentError(
+                "O Cloudinary retornou uma URL inválida e não foi possível limpar o arquivo enviado."
+            ) from error
+        raise AttachmentError("O Cloudinary não retornou uma URL segura válida.")
+    return {
+        "nome_original": prepared["nome_original"],
+        "nome_armazenado": secure_url,
+        "mime_type": prepared["mime_type"],
+        "tamanho_bytes": prepared["tamanho_bytes"],
+    }
+
+
+def _cloudinary_asset(stored_name):
+    if not is_cloudinary_url(stored_name):
+        raise AttachmentError("URL de anexo Cloudinary inválida.")
+    parsed = urlsplit(stored_name)
+    path_parts = [unquote(part) for part in parsed.path.split("/") if part]
+    try:
+        upload_index = path_parts.index("upload")
+        resource_type = path_parts[upload_index - 1]
+        asset_parts = path_parts[upload_index + 1:]
+    except (ValueError, IndexError) as error:
+        raise AttachmentError("URL de anexo Cloudinary inválida.") from error
+    if asset_parts and re.fullmatch(r"v\d+", asset_parts[0]):
+        asset_parts = asset_parts[1:]
+    public_id = "/".join(asset_parts)
+    if resource_type not in {"image", "raw"} or not public_id:
+        raise AttachmentError("URL de anexo Cloudinary inválida.")
+    if resource_type == "image":
+        public_id = re.sub(r"\.(jpg|jpeg|png)$", "", public_id, flags=re.IGNORECASE)
+    return public_id, resource_type
+
+
+def _delete_cloudinary_asset(stored_name):
+    import cloudinary
+    import cloudinary.uploader
+
+    cloudinary.config(
+        cloud_name=os.environ["CLOUDINARY_CLOUD_NAME"],
+        api_key=os.environ["CLOUDINARY_API_KEY"],
+        api_secret=os.environ["CLOUDINARY_API_SECRET"],
+        secure=True,
+    )
+    public_id, resource_type = _cloudinary_asset(stored_name)
+    try:
+        result = cloudinary.uploader.destroy(
+            public_id,
+            resource_type=resource_type,
+            invalidate=True,
+        )
+    except Exception as error:
+        raise AttachmentError("Não foi possível remover o arquivo do Cloudinary.") from error
+    if result.get("result") not in {"ok", "not found"}:
+        raise AttachmentError("O Cloudinary não confirmou a remoção do arquivo.")
+
+
 def _safe_path(stored_name):
     if not isinstance(stored_name, str) or not re.fullmatch(r"\d+/[a-f0-9]{32}\.(pdf|png|jpg|jpeg)", stored_name):
         raise AttachmentError("Caminho de anexo inválido.")
@@ -92,15 +226,28 @@ def _safe_path(stored_name):
 
 
 def open_attachment(stored_name):
+    if is_cloudinary_url(stored_name):
+        raise AttachmentError("Arquivos Cloudinary devem ser acessados pela URL segura.")
     path = _safe_path(stored_name)
     return path
 
 
 def delete_attachment(stored_name):
+    if is_cloudinary_url(stored_name):
+        return _delete_cloudinary_asset(stored_name)
     path = _safe_path(stored_name)
     path.unlink(missing_ok=True)
 
 
 def read_attachment(stored_name):
+    if is_cloudinary_url(stored_name):
+        try:
+            with urllib.request.urlopen(stored_name, timeout=30) as response:
+                data = response.read(MAX_ATTACHMENT_BYTES + 1)
+        except (OSError, urllib.error.URLError) as error:
+            raise AttachmentError("Não foi possível baixar o anexo armazenado no Cloudinary.") from error
+        if len(data) > MAX_ATTACHMENT_BYTES:
+            raise AttachmentError("O anexo Cloudinary excede o limite de 10 MB.")
+        return data
     path = _safe_path(stored_name)
     return path.read_bytes()

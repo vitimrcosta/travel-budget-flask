@@ -1,0 +1,42 @@
+services:
+  - type: web
+    name: rota-viagem
+    runtime: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn --bind 0.0.0.0:$PORT --workers 1 --threads 4 --timeout 120 web_app:app
+    healthCheckPath: /healthz
+    envVars:
+      - key: REQUIRE_MYSQL
+        value: "true"
+      - key: DB_HOST
+        value: rota-viagem-db-victor-da94.l.aivencloud.com
+      - key: DB_PORT
+        value: "25114"
+      - key: DB_USER
+        value: avnadmin
+      - key: DB_PASSWORD
+        sync: false
+      - key: DB_NAME
+        value: defaultdb
+      - key: DB_SSL_REQUIRED
+        value: "true"
+      - key: REQUIRE_LOGIN
+        value: "true"
+      - key: APP_SECRET_KEY
+        generateValue: true
+      - key: APP_LOGIN_USERNAME
+        sync: false
+      - key: APP_LOGIN_PASSWORD
+        sync: false
+      - key: SESSION_COOKIE_SECURE
+        value: "true"
+      - key: CLOUDINARY_REQUIRED
+        value: "true"
+      - key: CLOUDINARY_CLOUD_NAME
+        value: czzap8vl
+      - key: CLOUDINARY_API_KEY
+        sync: false
+      - key: CLOUDINARY_API_SECRET
+        sync: false
+      - key: DISABLE_DAILY_BACKUPS
+        value: "true"

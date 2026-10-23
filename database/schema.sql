@@ -1,6 +1,3 @@
-CREATE DATABASE IF NOT EXISTS controle_viagem CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-USE controle_viagem;
-
 CREATE TABLE IF NOT EXISTS viagem (
     id INT NOT NULL AUTO_INCREMENT,
     destino VARCHAR(150) NOT NULL,
@@ -131,7 +128,7 @@ CREATE TABLE IF NOT EXISTS anexo (
     gasto_id INT NULL,
     atividade_id INT NULL,
     nome_original VARCHAR(255) NOT NULL,
-    nome_armazenado VARCHAR(80) NOT NULL,
+    nome_armazenado VARCHAR(768) NOT NULL,
     mime_type VARCHAR(80) NOT NULL,
     tamanho_bytes INT UNSIGNED NOT NULL,
     is_capa BOOLEAN NOT NULL DEFAULT FALSE,

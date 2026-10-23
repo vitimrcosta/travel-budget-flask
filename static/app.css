@@ -54,12 +54,24 @@ button, input { font: inherit; }
 .eyebrow { color: #78847b; font-size: 10px; font-weight: 700; }
 .topbar-utility-link { padding: 8px 5px; color: var(--muted); font-size: 11px; font-weight: 600; transition: color .18s ease; }
 .topbar-utility-link:hover { color: var(--green); text-decoration: underline; text-underline-offset: 3px; }
+.topbar-logout-form { display: inline-flex; margin: 0; }
+.topbar-logout-form button { border: 0; background: transparent; cursor: pointer; font: inherit; }
 .topbar-link { gap: 10px; min-height: 40px; padding: 0 13px 0 16px; border-radius: 5px; font-size: 12px; text-decoration: none; }
 .topbar-link:hover { color: white; background: #23634f; }
 .topbar-link span { display: grid; flex: 0 0 21px; width: 21px; height: 21px; place-items: center; border: 1px solid rgba(255,255,255,.52); border-radius: 50%; }
 .topbar-link span svg { display: block; width: 12px; height: 12px; fill: none; stroke: currentColor; stroke-linecap: round; stroke-width: 1.5; }
 .page-content { width: min(100%, 1420px); min-height: calc(100vh - 122px); margin: 0 auto; padding: 38px clamp(24px, 5vw, 74px) 58px; }
 .page-footer { display: flex; justify-content: space-between; padding: 18px clamp(24px, 5vw, 74px); border-top: 1px solid var(--line); color: #89918b; font-size: 9px; }
+.login-page { display: grid; min-height: 100vh; place-items: center; padding: 24px; background: var(--paper); }
+.login-card { width: min(100%, 420px); padding: 36px; border: 1px solid var(--line); border-radius: 12px; background: var(--white); box-shadow: var(--shadow); }
+.login-brand { margin-bottom: 28px; color: var(--green); font-family: Fraunces, Georgia, serif; font-size: 30px; font-weight: 600; }
+.login-card h1 { margin-bottom: 8px; font-size: 32px; }
+.login-card p { margin-bottom: 24px; color: var(--muted); font-size: 13px; line-height: 1.5; }
+.login-card label { display: grid; gap: 7px; margin-bottom: 16px; color: var(--ink); font-size: 12px; font-weight: 700; }
+.login-card input { min-height: 42px; padding: 0 12px; border: 1px solid var(--line); border-radius: 5px; color: var(--ink); background: var(--paper); }
+.login-card input:focus { border-color: var(--green); outline: 2px solid rgba(23,72,59,.16); }
+.login-card .button { width: 100%; margin-top: 5px; }
+.login-card .flash-stack { margin-bottom: 18px; }
 .page-heading { position: relative; z-index: 2; display: flex; align-items: flex-end; justify-content: space-between; gap: 20px; margin-bottom: 25px; animation: arrive .38s ease both; }
 .dashboard-heading { align-items: center; margin-bottom: 17px; }
 .dashboard-heading-actions { display: flex; align-items: center; gap: 9px; }
@@ -315,6 +327,7 @@ td { padding: 13px 8px; border-top: 1px solid var(--line); color: #626e65; font-
 .backup-panel > p { max-width: 700px; margin: 0 0 14px; color: var(--muted); font-size: 12px; line-height: 1.6; }
 .backup-state { padding: 5px 9px; border-radius: 12px; color: #235640; background: #e0f0e4; font-size: 10px; font-weight: 700; }
 .backup-state.unavailable { color: #923f34; background: #f9e8e4; }
+.backup-state.disabled { color: #7a5d20; background: #f5edcf; }
 .backup-warning { color: #923f34 !important; }
 .backup-location { display: grid; grid-template-columns: 120px minmax(0, 1fr); gap: 10px; margin: 0; padding-top: 12px; border-top: 1px solid var(--line); font-size: 11px; }
 .backup-location dt { color: var(--muted); font-weight: 700; }
@@ -753,6 +766,7 @@ td { padding: 13px 8px; border-top: 1px solid var(--line); color: #626e65; font-
 :root[data-theme="dark"] .table-total { background: #263943; }
 :root[data-theme="dark"] .backup-state.unavailable,
 :root[data-theme="dark"] .backup-warning { color: #ffad9b; background: #432b27; }
+:root[data-theme="dark"] .backup-state.disabled { color: #f0d18a; background: #493c25; }
 :root[data-theme="dark"] .activity-status { color: #c5d0c8; background: #303a34; }
 :root[data-theme="dark"] .activity-status.reservada { color: #b8d6ec; background: #263b4c; }
 :root[data-theme="dark"] .activity-status.realizada { color: #c1e3c9; background: #294433; }

@@ -1,0 +1,2 @@
+ALTER TABLE anexo
+    MODIFY COLUMN nome_armazenado VARCHAR(768) NOT NULL;
