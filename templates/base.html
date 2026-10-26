@@ -55,6 +55,22 @@
 
     <main class="main-area">
       <header class="topbar">
+        {% set switcher_trip = (trips|selectattr("id", "equalto", selected_trip_id)|list|first) if selected_trip_id else None %}
+        {% set switcher_country = countries_by_code.get(switcher_trip.bandeira) if switcher_trip else None %}
+        <details class="trip-switcher">
+          <summary>
+            <span class="trip-switcher-mark">R</span>
+            <span class="trip-switcher-name">{% if switcher_country %}<img class="trip-nav-flag" src="{{ url_for('static', filename='flags/' ~ switcher_country.code|lower ~ '.svg') }}" alt="" aria-hidden="true">{% endif %}{{ switcher_trip.destino if switcher_trip else "Suas viagens" }}</span>
+            <svg class="trip-switcher-caret" viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>
+          </summary>
+          <div class="trip-switcher-sheet">
+            {% for nav_trip in trips %}
+              {% set nav_country = countries_by_code.get(nav_trip.bandeira) %}
+              <a href="{{ url_for('dashboard', trip_id=nav_trip.id) }}" class="{% if selected_trip_id == nav_trip.id %}active{% endif %}">{% if nav_country %}<img class="trip-nav-flag" src="{{ url_for('static', filename='flags/' ~ nav_country.code|lower ~ '.svg') }}" alt="" aria-hidden="true">{% endif %}<span><strong>{{ nav_trip.destino }}</strong><small>{{ nav_trip.data_ida }} — {{ nav_trip.data_volta }}</small></span></a>
+            {% endfor %}
+            <a href="{{ url_for('new_trip') }}" class="trip-switcher-new">+ Nova viagem</a>
+          </div>
+        </details>
         <span class="eyebrow">PLANEJE COM TRANQUILIDADE</span>
         <div class="topbar-actions">
           <button class="theme-toggle" type="button" data-theme-toggle aria-label="Ativar modo escuro" aria-pressed="false">

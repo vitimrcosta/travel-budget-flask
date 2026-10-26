@@ -301,6 +301,12 @@ class WebAppTests(unittest.TestCase):
         self.assertIn('class="quick-expense-fab"', page)
         self.assertIn('class="expense-cards"', page)
         form_page = self.client.get(f"/trips/{trip_id}/expenses/new").get_data(as_text=True)
+        dashboard = self.client.get(f"/trips/{trip_id}").get_data(as_text=True)
+        self.assertIn('class="trip-switcher"', dashboard)
+        self.assertIn('class="m-list"', dashboard)
+        self.assertEqual(web_app.category_icon("Hospedagem"), "🏨")
+        self.assertEqual(web_app.category_icon("Alimentação"), "🍽️")
+        self.assertEqual(web_app.category_icon("Qualquer coisa"), "🧾")
         self.assertIn('class="bottom-nav"', form_page)
         self.assertNotIn('class="quick-expense-fab"', form_page)
 

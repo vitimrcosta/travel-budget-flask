@@ -3,6 +3,7 @@ import hmac
 import json
 import os
 import secrets
+import unicodedata
 from datetime import date, datetime, time as datetime_time
 from decimal import Decimal, InvalidOperation, ROUND_HALF_UP
 from math import ceil
@@ -190,6 +191,24 @@ def login():
 def logout():
     session.clear()
     return redirect(url_for("login"))
+
+
+@app.template_filter("category_icon")
+def category_icon(name):
+    text = unicodedata.normalize("NFKD", str(name or "")).encode("ascii", "ignore").decode().lower()
+    for keywords, icon in (
+        (("aliment", "restaur", "comida", "refei"), "🍽️"),
+        (("hosped", "hotel", "airbnb"), "🏨"),
+        (("passagem", "voo", "aere"), "✈️"),
+        (("transport", "uber", "taxi", "onibus", "metro", "carro"), "🚌"),
+        (("passeio", "atra", "ingresso", "lazer"), "🎟️"),
+        (("compra", "souvenir"), "🛍️"),
+        (("seguro", "saude"), "🛡️"),
+        (("chip", "internet", "telefone"), "📶"),
+    ):
+        if any(word in text for word in keywords):
+            return icon
+    return "🧾"
 
 
 @app.template_filter("money")

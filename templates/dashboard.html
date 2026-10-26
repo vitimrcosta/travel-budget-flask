@@ -76,6 +76,16 @@
         {% for line in totals.categorias %}<tr><td class="primary-cell">{{ line.categoria }}</td><td>{{ line.previsto|money }}</td><td>{{ line.gasto|money }}</td><td>{{ line.pago|money }}</td><td>{{ line.em_aberto|money }}</td><td class="category-balance {% if line.alerta_orcamento == 'excedido' %}amount-over{% else %}amount-real{% endif %}"><strong>{{ line.falta|money }}</strong>{% if line.percentual_usado is not none %}<div class="category-progress" role="progressbar" aria-label="{{ line.categoria }}: {{ '%.1f'|format(line.percentual_usado) }}% do previsto usado" aria-valuemin="0" aria-valuemax="100" aria-valuenow="{{ line.progresso }}"><span class="category-progress-fill {% if line.alerta_orcamento == 'excedido' %}over-budget{% elif line.alerta_orcamento == 'atencao' %}near-budget-limit{% endif %}" style="width: {{ line.progresso }}%"></span></div>{% if line.alerta_orcamento == 'excedido' %}<small class="budget-alert">Excedido em {{ (-line.falta)|money }} · {{ "%.1f"|format(line.percentual_usado) }}%</small>{% elif line.alerta_orcamento == 'atencao' %}<small class="budget-warning">Atenção · {{ "%.1f"|format(line.percentual_usado) }}% utilizado</small>{% else %}<small>{{ "%.1f"|format(line.percentual_usado) }}% usado</small>{% endif %}{% else %}<small class="no-plan">Sem previsto</small>{% endif %}</td></tr>{% endfor %}
         <tr class="table-total"><td>TOTAL</td><td>{{ totals.total_previsto|money }}</td><td>{{ totals.total_gasto|money }}</td><td>{{ totals.total_pago|money }}</td><td>{{ totals.total_em_aberto|money }}</td><td>{{ totals.total_faltante|money }}</td></tr>
       </tbody></table></div>
+      <div class="m-list" aria-label="Planejamento por categoria">
+        {% for line in totals.categorias %}
+          <div class="m-item m-item-category">
+            <span class="m-item-icon" aria-hidden="true">{{ line.categoria|category_icon }}</span>
+            <span class="m-item-main"><strong>{{ line.categoria }}</strong><small>{{ line.gasto|money }} de {{ line.previsto|money }}</small></span>
+            <span class="m-item-side"><strong class="{% if line.alerta_orcamento == 'excedido' %}amount-over{% endif %}">{{ line.falta|money }}</strong><small>saldo</small></span>
+            {% if line.percentual_usado is not none %}<div class="m-progress" role="progressbar" aria-label="{{ line.categoria }}: {{ '%.1f'|format(line.percentual_usado) }}% do previsto usado" aria-valuemin="0" aria-valuemax="100" aria-valuenow="{{ line.progresso }}"><span class="{% if line.alerta_orcamento == 'excedido' %}over-budget{% elif line.alerta_orcamento == 'atencao' %}near-budget-limit{% endif %}" style="width: {{ line.progresso }}%"></span></div>{% endif %}
+          </div>
+        {% endfor %}
+      </div>
     </section>
 
     <div class="records-grid">
@@ -85,6 +95,15 @@
           <div class="table-wrap"><table><thead><tr><th>DATA</th><th>CATEGORIA</th><th>DESCRIÇÃO</th><th>VALOR EM R$</th><th>PAGO?</th><th></th></tr></thead><tbody>
             {% for expense in recent_expenses %}<tr><td>{{ expense.data_gasto }}</td><td><span class="category-label">{{ expense.categoria }}</span></td><td class="primary-cell">{{ expense.descricao }}</td><td class="amount-real">{{ expense.valor_em_brl|money }}</td><td><span class="payment-status {% if expense|payment_status == 'Pago' %}paid{% elif expense|payment_status == 'Parcial' %}partial{% endif %}">{{ expense|payment_status }}</span></td><td class="row-actions"><a href="{{ url_for('expense_form', trip_id=trip.id, item_id=expense.id) }}">Detalhes</a></td></tr>{% endfor %}
           </tbody></table></div>
+          <div class="m-list">
+            {% for expense in recent_expenses %}
+              <a class="m-item" href="{{ url_for('expense_form', trip_id=trip.id, item_id=expense.id) }}">
+                <span class="m-item-icon" aria-hidden="true">{{ expense.categoria|category_icon }}</span>
+                <span class="m-item-main"><strong>{{ expense.descricao }}</strong><small>{{ expense.categoria }} · {{ expense.data_gasto }}</small></span>
+                <span class="m-item-side"><strong>{{ expense.valor_em_brl|money }}</strong><span class="payment-status {% if expense|payment_status == 'Pago' %}paid{% elif expense|payment_status == 'Parcial' %}partial{% endif %}">{{ expense|payment_status }}</span></span>
+              </a>
+            {% endfor %}
+          </div>
         {% else %}<div class="empty-row"><span>Nenhum gasto cadastrado nesta viagem. Use “Adicionar gasto” para registrar o primeiro.</span></div>{% endif %}
       </section>
 
