@@ -6,6 +6,9 @@
     <div class="heading-actions"><a class="button button-secondary" href="{{ url_for('itinerary_print', trip_id=trip.id) }}">Imprimir roteiro</a><a class="button button-primary" href="{{ url_for('activity_form', trip_id=trip.id) }}">Adicionar atividade <span aria-hidden="true">+</span></a></div>
   </div>
 
+  {% set has_filters = filters.values()|select|list|length > 0 %}
+  <input type="checkbox" id="filters-toggle" class="filters-check" {% if has_filters %}checked{% endif %}><label class="filters-toggle-btn" for="filters-toggle"><span aria-hidden="true">⚲</span> Filtros{% if has_filters %} <em>ativos</em>{% endif %}</label>
+
   <section class="expense-filters" aria-label="Filtros das atividades">
     <form method="get" action="{{ url_for('activities_list', trip_id=trip.id) }}" class="filter-form">
       <label>Data inicial<input type="date" name="data_inicio" value="{{ filters.data_inicio }}"></label>

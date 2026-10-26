@@ -925,3 +925,53 @@ td { padding: 13px 8px; border-top: 1px solid var(--line); color: #626e65; font-
 @media print {
   .trip-switcher, .m-list { display: none !important; }
 }
+/* Listas móveis (etapa 2) */
+.filters-check, .filters-toggle-btn, .expense-card-icon { display: none; }
+
+@media screen and (max-width: 720px) {
+  .page-heading { flex-direction: column; align-items: stretch; gap: 12px; margin-bottom: 14px; }
+  .page-heading h1 { margin: 4px 0 2px; font-size: 26px; }
+  .page-heading .subheading { margin: 0; font-size: 12px; }
+  .page-heading > .button-primary, .heading-actions { width: 100%; }
+  .heading-actions { flex-direction: column-reverse; }
+  .heading-actions .button, .page-heading > .button-primary { width: 100%; justify-content: center; }
+  .heading-actions .button-secondary { min-height: 40px; background: transparent; }
+
+  .filters-toggle-btn { display: inline-flex; align-items: center; gap: 7px; align-self: flex-start; margin: 0 0 10px; padding: 9px 16px; border: 1px solid var(--line); border-radius: 999px; color: var(--green); background: var(--white); font-size: 13px; font-weight: 700; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+  .filters-toggle-btn em { padding: 2px 8px; border-radius: 999px; color: white; background: var(--green); font-size: 10px; font-style: normal; }
+  .filters-check:not(:checked) ~ .expense-filters { display: none; }
+  .filters-check:checked + .filters-toggle-btn { background: var(--mint); }
+  .expense-filters { margin: 0 0 12px; padding: 14px; border-radius: 14px; }
+  .filter-form { grid-template-columns: 1fr 1fr; gap: 10px; }
+  .filter-form .filter-search, .filter-form .filter-actions { grid-column: 1 / -1; }
+  .filter-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+
+  .filtered-totals { grid-template-columns: 1fr 1fr 1fr; gap: 6px; margin-bottom: 16px; }
+  .filtered-total-card { gap: 4px; padding: 10px 9px; border-radius: 12px; }
+  .filtered-totals span { font-size: 8px; }
+  .filtered-totals strong { font-size: 13px; font-family: inherit; font-weight: 800; }
+  .expense-results-heading { margin-bottom: 8px; }
+  .expense-scroll-hint { display: none; }
+
+  .expense-card { position: relative; grid-template-columns: 42px minmax(0, 1fr) auto; align-items: center; gap: 2px 12px; padding: 12px 14px; border-radius: 14px; }
+  .expense-card-top { display: contents; }
+  .expense-card-icon { display: grid; grid-row: 1 / span 3; width: 42px; height: 42px; place-items: center; border-radius: 12px; background: var(--mint); font-size: 21px; }
+  .expense-card-top .category-label { display: none; }
+  .expense-card-top .payment-status { grid-column: 3; grid-row: 2; justify-self: end; }
+  .expense-card h3 { grid-column: 2; grid-row: 1; font-size: 15px; }
+  .expense-card-amount { grid-column: 3; grid-row: 1; flex-direction: column; align-items: flex-end; gap: 0; }
+  .expense-card-amount strong { font-size: 16px; }
+  .expense-card-meta { grid-column: 2; grid-row: 2; }
+  .expense-card-note { grid-column: 2 / -1; }
+  .expense-card .row-actions { grid-column: 1 / -1; justify-content: stretch; gap: 8px; padding-top: 8px; border-top: 1px solid var(--line); }
+  .expense-card .row-actions > *, .expense-card .row-actions form { flex: 1; display: flex; }
+
+  .activity-day-heading h2 { font-size: 16px; }
+  .activity-card, .reservation-card { grid-template-columns: 1fr; gap: 8px; padding: 14px; border-left-width: 4px; border-radius: 14px; }
+  .activity-card-time, .reservation-card-date { display: flex; align-items: center; gap: 8px; padding: 0; }
+  .reservation-card-date > span:first-child { display: none; }
+  .activity-card-actions { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; justify-content: stretch; gap: 8px; padding-top: 10px; border-top: 1px solid var(--line); }
+  .activity-card-actions > *, .activity-card-actions form { width: 100%; }
+  .activity-card-actions .activity-action-link { display: flex; width: 100%; min-height: 40px; align-items: center; justify-content: center; border-radius: 10px; }
+  .pagination { padding-bottom: 8px; }
+}

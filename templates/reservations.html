@@ -6,6 +6,9 @@
     <a class="button button-primary" href="{{ url_for('reservation_form', trip_id=trip.id) }}">Adicionar reserva <span aria-hidden="true">+</span></a>
   </div>
 
+  {% set has_filters = filters.values()|select|list|length > 0 %}
+  <input type="checkbox" id="filters-toggle" class="filters-check" {% if has_filters %}checked{% endif %}><label class="filters-toggle-btn" for="filters-toggle"><span aria-hidden="true">⚲</span> Filtros{% if has_filters %} <em>ativos</em>{% endif %}</label>
+
   <section class="expense-filters" aria-label="Filtros das reservas">
     <form method="get" action="{{ url_for('reservations_list', trip_id=trip.id) }}" class="filter-form">
       <label>Tipo<select name="tipo"><option value="">Todos</option>{% for reservation_type in types %}<option value="{{ reservation_type }}" {% if filters.tipo == reservation_type %}selected{% endif %}>{{ reservation_type|capitalize }}</option>{% endfor %}</select></label>
