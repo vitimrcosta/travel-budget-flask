@@ -885,6 +885,7 @@ td { padding: 13px 8px; border-top: 1px solid var(--line); color: #626e65; font-
   .dashboard-heading { display: flex; justify-content: flex-end; min-height: 0; margin-bottom: 8px; }
   .dashboard-heading .eyebrow, .dashboard-heading-actions > .button { display: none; }
   .trip-actions-menu > summary { width: 40px; height: 40px; }
+  .trip-actions-panel { right: auto; left: 0; width: min(260px, calc(100vw - 32px)); }
   .trip-cover { min-height: 170px; border-radius: 16px; }
   .cover-copy { padding: 16px; }
   .cover-copy strong { font-size: 24px; }
