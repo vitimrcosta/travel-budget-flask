@@ -42,6 +42,15 @@ class StorageManager:
                 raise RuntimeError("Não foi possível conectar ao MySQL obrigatório.") from exc
         self._ensure_daily_backup()
 
+    def ensure_connection(self):
+        """Reconecta se o Aiven encerrou a conexão ociosa."""
+        if not self.mysql_enabled or self.conn is None:
+            return
+        try:
+            self.conn.ping(reconnect=True, attempts=2, delay=1)
+        except Exception as exc:  # pragma: no cover - depende da rede
+            self.mysql_error = exc
+
     def _ensure_daily_backup(self):
         if self._backup_suspended or os.getenv("DISABLE_DAILY_BACKUPS", "").strip().lower() in {"1", "true", "yes"}:
             return

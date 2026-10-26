@@ -89,9 +89,30 @@ def require_shared_login():
     return redirect(url_for("login", next=request.full_path if request.query_string else request.path))
 
 
+@app.before_request
+def keep_database_alive():
+    if request.endpoint not in {"static", "healthz", "pwa_manifest", "service_worker", "offline_page"}:
+        storage_manager.ensure_connection()
+
+
 @app.get("/healthz")
 def healthz():
     return jsonify(status="ok")
+
+
+@app.get("/status")
+def status():
+    configured = lambda *names: {name: bool(os.getenv(name)) for name in names}
+    error = storage_manager.mysql_error
+    return jsonify(
+        mysql_connected=storage_manager.mysql_enabled,
+        mysql_error=type(error).__name__ if error else None,
+        mysql_error_message=str(error)[:200] if error else None,
+        require_mysql=os.getenv("REQUIRE_MYSQL", "").strip().lower() in {"1", "true", "yes"},
+        database_env=configured("DB_HOST", "DB_PORT", "DB_USER", "DB_PASSWORD", "DB_NAME", "DB_SSL_REQUIRED"),
+        cloudinary_env=configured("CLOUDINARY_CLOUD_NAME", "CLOUDINARY_API_KEY", "CLOUDINARY_API_SECRET", "CLOUDINARY_REQUIRED"),
+        cloudinary_active=attachment_service.cloudinary_enabled(),
+    )
 
 
 def static_version():
