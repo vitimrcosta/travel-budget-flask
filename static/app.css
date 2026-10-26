@@ -993,3 +993,23 @@ td { padding: 13px 8px; border-top: 1px solid var(--line); color: #626e65; font-
   .category-manager-row { padding: 10px 12px; border: 1px solid var(--line); border-radius: 12px; background: var(--white); font-size: 14px; }
   .category-manager-row button { min-height: 36px; padding: 0 12px; border-radius: 8px; font-size: 12px; font-weight: 700; }
 }
+/* Formulários móveis (etapa 3) */
+@media screen and (max-width: 720px) {
+  .form-page-heading { margin-bottom: 14px; }
+  .form-page-heading > .eyebrow { margin-bottom: 4px; font-size: 10px; }
+  .form-page-heading p { font-size: 12px; }
+  .edit-form { gap: 16px; padding: 16px 14px 0; border-radius: 16px; box-shadow: none; }
+  .edit-form label { gap: 6px; font-size: 12px; }
+  .edit-form input, .edit-form select, .edit-form textarea { min-height: 48px; padding: 0 14px; border-radius: 12px; font-size: 16px; }
+  .edit-form textarea { min-height: 96px; padding: 12px 14px; }
+  .edit-form .currency-field { min-height: 48px; border-radius: 12px; }
+  .edit-form .currency-field input { min-height: 46px; border: 0; }
+  .edit-form fieldset, .edit-form .payment-people { border-radius: 12px; }
+  .edit-form .form-row { gap: 16px; }
+
+  .edit-form:not(.planning-form) .form-actions { position: sticky; bottom: calc(64px + env(safe-area-inset-bottom)); z-index: 15; display: grid; grid-template-columns: 1fr 1.6fr; gap: 8px; margin: 4px -14px 0; padding: 12px 14px; border-top: 1px solid var(--line); border-radius: 0 0 16px 16px; background: var(--white); box-shadow: 0 -8px 18px rgba(28, 50, 39, .06); }
+  .edit-form:not(.planning-form) .form-actions .button { width: 100%; justify-content: center; }
+  body:has(.edit-form) .quick-expense-fab { display: none; }
+  .edit-form .payment-options-row { grid-template-columns: 1fr 1fr; gap: 8px 12px; }
+}
+:root[data-theme="dark"] .edit-form:not(.planning-form) .form-actions { box-shadow: 0 -8px 18px rgba(0, 0, 0, .3); }
