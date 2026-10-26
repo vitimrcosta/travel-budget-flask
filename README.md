@@ -89,6 +89,15 @@ Para migrar as viagens e anexos locais, antes de publicar exporte cada viagem pe
 
 O campo `anexo.nome_armazenado` foi ampliado para guardar URLs Cloudinary. A inicialização do app aplica a alteração ao banco existente; o script correspondente está em [20261024_cloudinary_attachment_urls.sql](database/migrations/20261024_cloudinary_attachment_urls.sql). Antes de aplicar manualmente, faça backup do banco e confirme que a migração ainda não foi executada.
 
+## App no celular (PWA)
+
+O site pode ser instalado como app, sem loja e sem APK. Requer HTTPS (o Render já fornece).
+
+- **Android (Chrome):** menu ⋮ → **Instalar app**.
+- **iPhone (Safari):** Compartilhar → **Adicionar à Tela de Início**.
+
+No celular o layout muda para menu inferior, botão "+" de gasto rápido e gastos em cartões; no computador nada muda. O service worker guarda em cache apenas arquivos estáticos (CSS, JS, ícones); os dados da viagem sempre vêm do servidor, então é necessário ter internet.
+
 ## Créditos das bandeiras
 
 As bandeiras SVG locais em [static/flags](static/flags/) são distribuídas pelo FlagCDN, baseado em arquivos vetoriais do Wikimedia Commons. Consulte [Flagpedia](https://flagpedia.net) para informações sobre o projeto.

@@ -806,3 +806,51 @@ td { padding: 13px 8px; border-top: 1px solid var(--line); color: #626e65; font-
 :root[data-theme="dark"] .itinerary-print-location strong,
 :root[data-theme="dark"] .itinerary-print-cost strong { color: #a7b5aa; }
 }
+/* PWA / app móvel */
+.bottom-nav, .quick-expense-fab, .expense-cards { display: none; }
+.offline-body { display: grid; min-height: 100vh; place-items: center; padding: 24px; background: var(--paper); color: var(--ink); }
+.offline-card { display: grid; justify-items: center; gap: 14px; max-width: 380px; text-align: center; }
+.offline-card .brand-mark { color: var(--sun); background: var(--green-deep); }
+.offline-card p { margin: 0; color: var(--muted); font-size: 14px; line-height: 1.5; }
+
+@media screen and (max-width: 720px) {
+  .sidebar { padding-top: calc(15px + env(safe-area-inset-top)); }
+  .topbar-utility-link, .topbar-link, .topbar-logout-form { display: none; }
+  .page-content { padding-bottom: calc(96px + env(safe-area-inset-bottom)); }
+  .page-footer { display: none; }
+  input:not([type="checkbox"]):not([type="radio"]), select, textarea { min-height: 44px; font-size: 16px; }
+  .button { min-height: 44px; }
+
+  .bottom-nav { position: fixed; right: 0; bottom: 0; left: 0; z-index: 20; display: grid; grid-template-columns: repeat(5, 1fr); padding: 6px 4px calc(6px + env(safe-area-inset-bottom)); border-top: 1px solid var(--line); background: var(--white); box-shadow: 0 -6px 22px rgba(28, 50, 39, .08); }
+  .bottom-nav > a, .bottom-nav-more > summary { display: grid; justify-items: center; align-content: center; gap: 3px; min-height: 50px; border-radius: 10px; color: var(--muted); font-size: 10px; font-weight: 700; list-style: none; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+  .bottom-nav-more > summary::-webkit-details-marker { display: none; }
+  .bottom-nav svg { width: 23px; height: 23px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+  .bottom-nav-more circle { fill: currentColor; stroke: none; }
+  .bottom-nav > a.active, .bottom-nav-more[open] > summary { color: var(--green); background: var(--mint); }
+  .bottom-nav-more { position: relative; }
+  .bottom-nav-sheet { position: absolute; right: 0; bottom: calc(100% + 12px); display: grid; width: min(260px, 80vw); padding: 7px; border: 1px solid var(--line); border-radius: 12px; background: var(--white); box-shadow: 0 14px 35px rgba(28, 50, 39, .2); }
+  .bottom-nav-sheet a, .bottom-nav-sheet button { display: block; width: 100%; padding: 13px 12px; border: 0; border-radius: 8px; color: var(--ink); background: transparent; font-size: 14px; font-weight: 600; text-align: left; cursor: pointer; }
+  .bottom-nav-sheet form { margin: 0; }
+  .bottom-nav-sheet button { color: #a45645; }
+
+  .quick-expense-fab { position: fixed; right: 18px; bottom: calc(82px + env(safe-area-inset-bottom)); z-index: 19; display: grid; width: 56px; height: 56px; place-items: center; border-radius: 50%; color: white; background: var(--green); box-shadow: 0 8px 22px rgba(23, 72, 59, .38); -webkit-tap-highlight-color: transparent; }
+  .quick-expense-fab svg { width: 26px; height: 26px; fill: none; stroke: currentColor; stroke-width: 2.4; stroke-linecap: round; }
+  .quick-expense-fab:active { transform: scale(.94); }
+
+  .expense-table-wrap, .expense-scroll-hint { display: none !important; }
+  .expense-cards { display: grid; gap: 10px; }
+  .expense-card { display: grid; gap: 7px; padding: 14px; border: 1px solid var(--line); border-radius: 12px; background: var(--white); }
+  .expense-card-top { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+  .expense-card h3 { margin: 0; font-size: 16px; line-height: 1.3; overflow-wrap: anywhere; }
+  .expense-card-amount { display: flex; align-items: baseline; gap: 8px; }
+  .expense-card-amount strong { color: var(--green); font-size: 21px; }
+  .expense-card-amount small, .expense-card-meta, .expense-card-note { margin: 0; color: var(--muted); font-size: 12px; line-height: 1.45; }
+  .expense-card .row-actions { justify-content: flex-end; padding-top: 4px; }
+}
+
+@media print {
+  .bottom-nav, .quick-expense-fab { display: none !important; }
+}
+
+:root[data-theme="dark"] .bottom-nav-sheet a:hover { background: var(--mint); }
+:root[data-theme="dark"] .expense-card-amount strong { color: var(--green); }

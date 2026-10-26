@@ -271,6 +271,39 @@ class WebAppTests(unittest.TestCase):
         web_app.LOGIN_PASSWORD = self.original_login_password
         self.temp_dir.cleanup()
 
+    def test_pwa_assets_publicos_e_navegacao_movel(self):
+        web_app.REQUIRE_LOGIN = True
+        web_app.LOGIN_USERNAME = "casal"
+        web_app.LOGIN_PASSWORD = "senha-de-teste"
+
+        manifest = self.client.get("/manifest.webmanifest")
+        self.assertEqual(manifest.status_code, 200)
+        data = manifest.get_json()
+        self.assertEqual(data["display"], "standalone")
+        self.assertTrue(any(icon["sizes"] == "512x512" for icon in data["icons"]))
+        worker = self.client.get("/sw.js")
+        self.assertEqual(worker.status_code, 200)
+        self.assertIn("javascript", worker.headers["Content-Type"])
+        self.assertEqual(worker.headers["Service-Worker-Allowed"], "/")
+        self.assertEqual(self.client.get("/offline").status_code, 200)
+        self.assertIn('rel="manifest"', self.client.get("/login").get_data(as_text=True))
+
+        with self.client.session_transaction() as browser_session:
+            browser_session["authenticated"] = True
+        self.client.post(
+            "/trips/new",
+            data={"destino": "Rota Movel", "data_ida": "2026-06-10", "data_volta": "2026-06-15"},
+        )
+        with self.client.session_transaction() as browser_session:
+            trip_id = browser_session["selected_trip_id"]
+        page = self.client.get(f"/trips/{trip_id}/expenses").get_data(as_text=True)
+        self.assertIn('class="bottom-nav"', page)
+        self.assertIn('class="quick-expense-fab"', page)
+        self.assertIn('class="expense-cards"', page)
+        form_page = self.client.get(f"/trips/{trip_id}/expenses/new").get_data(as_text=True)
+        self.assertIn('class="bottom-nav"', form_page)
+        self.assertNotIn('class="quick-expense-fab"', form_page)
+
     def test_login_compartilhado_protege_rotas_e_rejeita_redirect_externo(self):
         web_app.REQUIRE_LOGIN = True
         web_app.LOGIN_USERNAME = "casal"

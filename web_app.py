@@ -9,7 +9,7 @@ from math import ceil
 from pathlib import Path
 from urllib.parse import urlsplit
 
-from flask import Flask, abort, flash, jsonify, redirect, render_template, request, send_file, session, url_for
+from flask import Flask, abort, flash, jsonify, make_response, redirect, render_template, request, send_file, session, url_for
 from flask_wtf.csrf import CSRFProtect
 from werkzeug.utils import secure_filename
 
@@ -80,7 +80,9 @@ def safe_next_url(value):
 
 @app.before_request
 def require_shared_login():
-    if not REQUIRE_LOGIN or request.endpoint in {None, "login", "healthz", "static"}:
+    if not REQUIRE_LOGIN or request.endpoint in {
+        None, "login", "healthz", "static", "pwa_manifest", "service_worker", "offline_page",
+    }:
         return None
     if session.get("authenticated"):
         return None
@@ -90,6 +92,57 @@ def require_shared_login():
 @app.get("/healthz")
 def healthz():
     return jsonify(status="ok")
+
+
+def static_version():
+    static_dir = Path(app.static_folder)
+    stamps = [
+        int((static_dir / name).stat().st_mtime)
+        for name in ("app.css", "app.js")
+        if (static_dir / name).exists()
+    ]
+    return str(max(stamps, default=0))
+
+
+@app.get("/manifest.webmanifest")
+def pwa_manifest():
+    icons = [
+        {"src": url_for("static", filename="icons/icon-192.png"), "sizes": "192x192", "type": "image/png", "purpose": "any"},
+        {"src": url_for("static", filename="icons/icon-512.png"), "sizes": "512x512", "type": "image/png", "purpose": "any"},
+        {"src": url_for("static", filename="icons/icon-512.png"), "sizes": "512x512", "type": "image/png", "purpose": "maskable"},
+    ]
+    manifest = {
+        "id": "/",
+        "name": "Rota | Controle de viagem",
+        "short_name": "Rota",
+        "description": "Orçamento, gastos, roteiro e reservas da sua viagem.",
+        "lang": "pt-BR",
+        "start_url": "/",
+        "scope": "/",
+        "display": "standalone",
+        "orientation": "portrait",
+        "background_color": "#173f35",
+        "theme_color": "#173f35",
+        "icons": icons,
+    }
+    response = jsonify(manifest)
+    response.headers["Content-Type"] = "application/manifest+json"
+    response.headers["Cache-Control"] = "no-cache"
+    return response
+
+
+@app.get("/sw.js")
+def service_worker():
+    response = make_response(render_template("sw.js", version=static_version()))
+    response.headers["Content-Type"] = "application/javascript; charset=utf-8"
+    response.headers["Cache-Control"] = "no-cache"
+    response.headers["Service-Worker-Allowed"] = "/"
+    return response
+
+
+@app.get("/offline")
+def offline_page():
+    return render_template("offline.html")
 
 
 @app.route("/login", methods=["GET", "POST"])
@@ -164,7 +217,7 @@ def format_payment_people(payments):
 def add_template_context():
     daily_backups_disabled = os.getenv("DISABLE_DAILY_BACKUPS", "").strip().lower() in {"1", "true", "yes"}
     return {
-        "trips": [] if request.endpoint == "login" else storage_manager.list_viagens(),
+        "trips": [] if request.endpoint in {"login", "offline_page"} else storage_manager.list_viagens(),
         "selected_trip_id": session.get("selected_trip_id"),
         "mysql_available": storage_manager.mysql_enabled,
         "currency_codes": SUPPORTED_CURRENCIES,

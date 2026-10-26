@@ -1,0 +1,19 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#173f35">
+  <title>Sem conexão | Rota</title>
+  {% include "_pwa_head.html" %}
+  <link rel="stylesheet" href="{{ url_for('static', filename='app.css') }}">
+</head>
+<body class="offline-body">
+  <main class="offline-card">
+    <span class="brand-mark">R</span>
+    <h1>Sem conexão</h1>
+    <p>O Rota precisa de internet para carregar suas viagens, gastos e reservas. Verifique o Wi-Fi ou os dados móveis e tente novamente.</p>
+    <button class="button button-primary" type="button" onclick="location.reload()">Tentar novamente</button>
+  </main>
+</body>
+</html>

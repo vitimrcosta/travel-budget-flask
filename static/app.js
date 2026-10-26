@@ -355,3 +355,17 @@
     }
   });
 })();
+
+(() => {
+  if ("serviceWorker" in navigator) {
+    window.addEventListener("load", () => {
+      navigator.serviceWorker.register("/sw.js").catch((error) => console.warn("Service worker indisponível.", error));
+    });
+  }
+  const more = document.querySelector(".bottom-nav-more");
+  if (more) {
+    document.addEventListener("click", (event) => {
+      if (more.open && !more.contains(event.target)) more.open = false;
+    });
+  }
+})();
