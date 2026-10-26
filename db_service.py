@@ -1,5 +1,6 @@
 import json
 import os
+import threading
 from copy import deepcopy
 from datetime import datetime
 from decimal import Decimal, ROUND_HALF_UP
@@ -14,7 +15,16 @@ DATA_FILE = Path(__file__).with_name("viagem_data.json")
 
 
 class StorageManager:
+    @property
+    def conn(self):
+        return getattr(self._local, "conn", None)
+
+    @conn.setter
+    def conn(self, value):
+        self._local.conn = value
+
     def __init__(self):
+        self._local = threading.local()
         self.mysql_error = None
         self.backup_error = None
         self._backup_suspended = False
@@ -47,12 +57,26 @@ class StorageManager:
         self._ensure_daily_backup()
 
     def ensure_connection(self):
-        """Reconecta se o Aiven encerrou a conexão ociosa."""
-        if not self.mysql_enabled or self.conn is None:
+        """Garante uma conexão viva para a thread atual (o Aiven encerra conexões ociosas)."""
+        if not self.mysql_enabled:
             return
+        conn = self.conn
         try:
-            self.conn.ping(reconnect=True, attempts=2, delay=1)
+            if conn is not None:
+                conn.ping(reconnect=True, attempts=2, delay=1)
+                return
+        except Exception:
+            try:
+                conn.close()
+            except Exception:
+                pass
+        try:
+            import mysql.connector
+
+            self.conn = mysql.connector.connect(**DB_CONFIG)
+            self.mysql_error = None
         except Exception as exc:  # pragma: no cover - depende da rede
+            self.conn = None
             self.mysql_error = exc
 
     def _ensure_daily_backup(self):
