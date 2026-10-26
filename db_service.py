@@ -39,7 +39,11 @@ class StorageManager:
             self.mysql_enabled = False
             self.conn = None
             if os.getenv("REQUIRE_MYSQL", "").strip().lower() in {"1", "true", "yes"}:
-                raise RuntimeError("Não foi possível conectar ao MySQL obrigatório.") from exc
+                raise RuntimeError(
+                    f"Não foi possível conectar ao MySQL obrigatório ({type(exc).__name__}: {str(exc)[:300]}) "
+                    f"host={DB_CONFIG['host']} porta={DB_CONFIG['port']} usuario={DB_CONFIG['user']} "
+                    f"banco={DB_CONFIG['database']} ssl={'sim' if not DB_CONFIG.get('ssl_disabled', True) else 'nao'}"
+                ) from exc
         self._ensure_daily_backup()
 
     def ensure_connection(self):
