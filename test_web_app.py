@@ -1010,6 +1010,14 @@ class WebAppTests(unittest.TestCase):
             follow_redirects=True,
         )
         self.assertIn("Categoria adicionada", response.get_data(as_text=True))
+        pets_row = next(i for i, r in enumerate(db_service.storage_manager.get_viagem(trip_id)["planejamento"]) if r["categoria"] == "Pets")
+        self.client.post(
+            f"/trips/{trip_id}/planning/categories",
+            data={"categoria_nova": "Passeios", f"previsto_{pets_row}": "150.50"},
+            follow_redirects=True,
+        )
+        kept = db_service.storage_manager.get_viagem(trip_id)["planejamento"]
+        self.assertEqual(next(r for r in kept if r["categoria"] == "Pets")["valor_previsto"], 150.5)
         response = self.client.post(
             f"/trips/{trip_id}/planning/categories",
             data={"categoria_nova": "Outros"},

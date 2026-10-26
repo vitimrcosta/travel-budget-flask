@@ -56,7 +56,11 @@
     }
 
     field.addEventListener("focus", () => {
-      field.value = normalizeAmount(field.value);
+      const normalized = normalizeAmount(field.value);
+      field.value = Number(normalized) === 0 ? "" : normalized.replace(".", ",");
+      if (field.value) {
+        field.select();
+      }
     });
     field.addEventListener("blur", () => formatAmount(field));
     field.form.addEventListener("submit", () => {
@@ -65,6 +69,22 @@
   };
 
   document.querySelectorAll("[data-money]").forEach(bindMoneyField);
+
+  // Ao adicionar/remover categoria, leva junto os valores já digitados no planejamento.
+  const planningForm = document.querySelector(".planning-form");
+  if (planningForm) {
+    document.querySelectorAll("[data-keep-planning]").forEach((form) => {
+      form.addEventListener("submit", () => {
+        planningForm.querySelectorAll("[data-money]").forEach((field) => {
+          const hidden = document.createElement("input");
+          hidden.type = "hidden";
+          hidden.name = field.name;
+          hidden.value = normalizeAmount(field.value);
+          form.appendChild(hidden);
+        });
+      });
+    });
+  }
 
   document.querySelectorAll("[data-emoji-picker]").forEach((picker) => {
     const input = picker.querySelector('input[name="bandeira"]');

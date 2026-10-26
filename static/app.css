@@ -976,3 +976,20 @@ td { padding: 13px 8px; border-top: 1px solid var(--line); color: #626e65; font-
   .activity-card-actions .activity-action-link { display: flex; width: 100%; min-height: 40px; align-items: center; justify-content: center; border-radius: 10px; }
   .pagination { padding-bottom: 8px; }
 }
+/* Planejamento por categoria */
+.planning-name, .category-manager-row > span { display: inline-flex; align-items: center; gap: 10px; }
+.planning-icon { display: inline-grid; width: 32px; height: 32px; place-items: center; border-radius: 10px; background: var(--mint); font-size: 16px; }
+
+@media screen and (max-width: 720px) {
+  .form-page-heading h1 { font-size: 26px; }
+  .planning-form { gap: 8px; }
+  .planning-form label { display: grid; grid-template-columns: 1fr; gap: 10px; padding: 14px; border: 1px solid var(--line); border-radius: 14px; background: var(--white); }
+  .planning-form .currency-field { min-height: 48px; border-radius: 10px; }
+  .planning-form .currency-field input { font-size: 18px; font-weight: 700; }
+  .planning-form .form-actions { display: grid; grid-template-columns: 1fr 1.4fr; gap: 8px; }
+  .category-manager { margin-top: 22px; }
+  .category-add-form { gap: 10px; padding: 14px; border-radius: 14px; }
+  .category-manager-list { gap: 8px; border-top: 0; }
+  .category-manager-row { padding: 10px 12px; border: 1px solid var(--line); border-radius: 12px; background: var(--white); font-size: 14px; }
+  .category-manager-row button { min-height: 36px; padding: 0 12px; border-radius: 8px; font-size: 12px; font-weight: 700; }
+}
