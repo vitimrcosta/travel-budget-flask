@@ -246,9 +246,13 @@ def delete_attachment(stored_name):
 def read_attachment(stored_name):
     if is_cloudinary_url(stored_name):
         try:
-            with urllib.request.urlopen(stored_name, timeout=30) as response:
+            request = urllib.request.Request(stored_name, headers={"User-Agent": "Mozilla/5.0 (Rota)"})
+            with urllib.request.urlopen(request, timeout=30) as response:
                 data = response.read(MAX_ATTACHMENT_BYTES + 1)
         except (OSError, urllib.error.URLError) as error:
+            logging.getLogger(__name__).error(
+                "Falha ao baixar anexo Cloudinary %s: %s: %s", stored_name, type(error).__name__, error
+            )
             raise AttachmentError("Não foi possível baixar o anexo armazenado no Cloudinary.") from error
         if len(data) > MAX_ATTACHMENT_BYTES:
             raise AttachmentError("O anexo Cloudinary excede o limite de 10 MB.")
