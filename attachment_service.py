@@ -1,4 +1,5 @@
 import io
+import logging
 import os
 import re
 import tempfile
@@ -148,6 +149,9 @@ def _save_cloudinary_upload(trip_id, prepared):
             unique_filename=False,
         )
     except Exception as error:
+        logging.getLogger(__name__).error(
+            "Falha no upload Cloudinary: %s: %s", type(error).__name__, str(error)[:300]
+        )
         raise AttachmentError("Não foi possível enviar o arquivo para o Cloudinary.") from error
 
     secure_url = result.get("secure_url")
