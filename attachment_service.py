@@ -243,17 +243,49 @@ def delete_attachment(stored_name):
     path.unlink(missing_ok=True)
 
 
+def _fetch_url(url):
+    request = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0 (Rota)"})
+    with urllib.request.urlopen(request, timeout=30) as response:
+        return response.read(MAX_ATTACHMENT_BYTES + 1)
+
+
+def _signed_download_url(stored_name):
+    """URL assinada da API do Cloudinary; funciona mesmo com a entrega pública bloqueada."""
+    import cloudinary
+    import cloudinary.utils
+
+    cloudinary.config(
+        cloud_name=os.environ["CLOUDINARY_CLOUD_NAME"],
+        api_key=os.environ["CLOUDINARY_API_KEY"],
+        api_secret=os.environ["CLOUDINARY_API_SECRET"],
+        secure=True,
+    )
+    public_id, resource_type = _cloudinary_asset(stored_name)
+    extension = Path(urlsplit(stored_name).path).suffix.lstrip(".").lower()
+    file_format = extension if resource_type == "image" else ""
+    return cloudinary.utils.private_download_url(
+        public_id, file_format, resource_type=resource_type, type="upload"
+    )
+
+
 def read_attachment(stored_name):
     if is_cloudinary_url(stored_name):
+        logger = logging.getLogger(__name__)
         try:
-            request = urllib.request.Request(stored_name, headers={"User-Agent": "Mozilla/5.0 (Rota)"})
-            with urllib.request.urlopen(request, timeout=30) as response:
-                data = response.read(MAX_ATTACHMENT_BYTES + 1)
+            data = _fetch_url(stored_name)
         except (OSError, urllib.error.URLError) as error:
-            logging.getLogger(__name__).error(
-                "Falha ao baixar anexo Cloudinary %s: %s: %s", stored_name, type(error).__name__, error
+            logger.warning(
+                "Download público do Cloudinary falhou (%s: %s); tentando URL assinada.",
+                type(error).__name__, error,
             )
-            raise AttachmentError("Não foi possível baixar o anexo armazenado no Cloudinary.") from error
+            try:
+                data = _fetch_url(_signed_download_url(stored_name))
+            except Exception as signed_error:
+                logger.error(
+                    "Falha ao baixar anexo Cloudinary %s: %s: %s",
+                    stored_name, type(signed_error).__name__, signed_error,
+                )
+                raise AttachmentError("Não foi possível baixar o anexo armazenado no Cloudinary.") from signed_error
         if len(data) > MAX_ATTACHMENT_BYTES:
             raise AttachmentError("O anexo Cloudinary excede o limite de 10 MB.")
         return data
