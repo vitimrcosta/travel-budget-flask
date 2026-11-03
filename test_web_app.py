@@ -336,6 +336,7 @@ class WebAppTests(unittest.TestCase):
             data={"username": "casal", "password": "senha-de-teste", "next": "https://example.com"},
         )
         self.assertEqual(logged_in.status_code, 302)
+        self.assertIn("Expires=", logged_in.headers.get("Set-Cookie", ""))
         self.assertTrue(logged_in.headers["Location"].endswith("/"))
         self.assertEqual(self.client.get("/").status_code, 200)
 

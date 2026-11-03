@@ -4,7 +4,7 @@ import json
 import os
 import secrets
 import unicodedata
-from datetime import date, datetime, time as datetime_time
+from datetime import date, datetime, timedelta, time as datetime_time
 from decimal import Decimal, InvalidOperation, ROUND_HALF_UP
 from math import ceil
 from pathlib import Path
@@ -62,6 +62,7 @@ if REQUIRE_LOGIN and (not LOGIN_USERNAME or not LOGIN_PASSWORD):
 app.config["SECRET_KEY"] = APP_SECRET_KEY or secrets.token_hex(32)
 app.config["SESSION_COOKIE_HTTPONLY"] = True
 app.config["SESSION_COOKIE_SAMESITE"] = "Lax"
+app.config["PERMANENT_SESSION_LIFETIME"] = timedelta(days=90)
 app.config["SESSION_COOKIE_SECURE"] = os.getenv(
     "SESSION_COOKIE_SECURE", "true" if REQUIRE_LOGIN else "false"
 ).strip().lower() in {"1", "true", "yes"}
@@ -181,6 +182,7 @@ def login():
             password.encode("utf-8"), LOGIN_PASSWORD.encode("utf-8")
         ):
             session.clear()
+            session.permanent = True
             session["authenticated"] = True
             return redirect(next_url or url_for("index"))
         flash("Usuário ou senha incorretos.", "error")
