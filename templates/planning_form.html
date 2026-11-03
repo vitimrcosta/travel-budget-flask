@@ -12,6 +12,18 @@
     <div class="form-actions"><a class="button button-secondary" href="{{ url_for('dashboard', trip_id=trip.id) }}">Cancelar</a><button class="button button-primary" type="submit">Salvar planejamento</button></div>
   </form>
 
+  {% if categories|length >= 2 %}
+  <section class="category-manager transfer-manager">
+    <div class="section-title-row"><div><span class="eyebrow">REMANEJAR</span><h2>Mover valor entre categorias</h2></div></div>
+    <form class="category-add-form transfer-form" data-keep-planning method="post" action="{{ url_for('transfer_planning_amount', trip_id=trip.id) }}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <label>De<select name="origem" required>{% for category in categories %}<option value="{{ loop.index0 }}" data-icon="{{ category|category_icon }}">{{ category }}</option>{% endfor %}</select></label>
+      <label>Para<select name="destino" required>{% for category in categories %}<option value="{{ loop.index0 }}" data-icon="{{ category|category_icon }}" {% if loop.index0 == 1 %}selected{% endif %}>{{ category }}</option>{% endfor %}</select></label>
+      <label>Valor<div class="currency-field"><span aria-hidden="true">R$</span><input type="text" name="valor_mover" inputmode="decimal" data-money required placeholder="0,00"></div></label>
+      <button class="button button-primary" type="submit">Mover valor</button>
+    </form>
+  </section>
+  {% endif %}
   <section class="category-manager">
     <div class="section-title-row"><div><span class="eyebrow">CATEGORIAS DESTA VIAGEM</span><h2>Organize seus grupos de gastos</h2></div></div>
     <form class="category-add-form" data-keep-planning method="post" action="{{ url_for('add_planning_category', trip_id=trip.id) }}">

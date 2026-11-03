@@ -1059,6 +1059,39 @@ class WebAppTests(unittest.TestCase):
 
         db_service.storage_manager.delete_viagem(trip_id)
 
+    def test_mover_valor_entre_categorias_e_resultado(self):
+        self.client.post("/trips/new", data={"destino": "Mover", "data_ida": "2026-07-10", "data_volta": "2026-07-15"})
+        with self.client.session_transaction() as browser_session:
+            trip_id = browser_session["selected_trip_id"]
+        planning = db_service.storage_manager.get_viagem(trip_id)["planejamento"]
+        self.client.post(f"/trips/{trip_id}/planning/categories", data={"categoria_nova": "Pets"})
+        self.client.post(
+            f"/trips/{trip_id}/planning/categories",
+            data={"categoria_nova": "Passeios", "previsto_0": "300", "previsto_1": "50"},
+        )
+        page = self.client.get(f"/trips/{trip_id}/planning").get_data(as_text=True)
+        self.assertIn("Mover valor entre categorias", page)
+        response = self.client.post(
+            f"/trips/{trip_id}/planning/transfer",
+            data={"origem": "0", "destino": "1", "valor_mover": "100,00"},
+            follow_redirects=True,
+        )
+        self.assertIn("movido de", response.get_data(as_text=True))
+        rows = db_service.storage_manager.get_viagem(trip_id)["planejamento"]
+        self.assertEqual((rows[0]["valor_previsto"], rows[1]["valor_previsto"]), (200.0, 100.0))
+        response = self.client.post(
+            f"/trips/{trip_id}/planning/transfer",
+            data={"origem": "0", "destino": "1", "valor_mover": "999"},
+            follow_redirects=True,
+        )
+        self.assertIn("tem apenas", response.get_data(as_text=True))
+        dashboard = self.client.get(f"/trips/{trip_id}").get_data(as_text=True)
+        self.assertIn("RESULTADO DO PLANEJAMENTO", dashboard)
+        self.assertIn("Economizado no total", dashboard)
+        form = self.client.get(f"/trips/{trip_id}/expenses/new").get_data(as_text=True)
+        self.assertRegex(form, r'<option value="1"\s+selected')
+        db_service.storage_manager.delete_viagem(trip_id)
+
     def test_painel_mostra_cinco_gastos_e_lista_pagina(self):
         trip = {
             "destino": "Lista extensa",

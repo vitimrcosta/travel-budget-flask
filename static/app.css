@@ -1038,3 +1038,26 @@ td { padding: 13px 8px; border-top: 1px solid var(--line); color: #626e65; font-
 }
 @keyframes sheet-up { from { transform: translateY(100%); } to { transform: none; } }
 @keyframes sheet-fade { from { opacity: 0; } to { opacity: 1; } }
+/* Resultado do planejamento e mover valor */
+.plan-result { display: grid; gap: 12px; margin-top: 14px; padding: 18px 20px; border: 1px solid var(--line); border-left: 4px solid var(--green); border-radius: 8px; background: var(--white); }
+.plan-result.is-negative { border-left-color: #b4503f; }
+.plan-result-head { display: grid; gap: 3px; }
+.plan-result-head strong { color: var(--green); font-family: Fraunces, Georgia, serif; font-size: 28px; font-weight: 500; }
+.plan-result.is-negative .plan-result-head strong { color: #b4503f; }
+.plan-result-head small, .plan-result-note { margin: 0; color: var(--muted); font-size: 12px; line-height: 1.45; }
+.plan-result-rows { display: grid; gap: 6px; }
+.plan-result-rows > div { display: flex; align-items: center; justify-content: space-between; gap: 10px; font-size: 13px; }
+.plan-result-rows .is-over strong { color: #b4503f; }
+.transfer-form { grid-template-columns: 1fr 1fr; }
+.transfer-form label { display: grid; gap: 7px; color: #58655c; font-size: 12px; font-weight: 700; }
+.transfer-form select { min-height: 40px; padding: 0 10px; border: 1px solid #d6ded5; border-radius: 3px; background: #fcfdfb; color: var(--ink); font: inherit; }
+.transfer-form .button { grid-column: 1 / -1; justify-content: center; }
+:root[data-theme="dark"] .plan-result { background: #1b2a21; border-color: #2f4a3b; }
+:root[data-theme="dark"] .transfer-form label { color: #c3d0c7; }
+:root[data-theme="dark"] .transfer-form select { border-color: #46574c; background: #17211b; color: #e8efe9; }
+@media screen and (max-width: 720px) {
+  .plan-result { padding: 16px; border-radius: 14px; }
+  .plan-result-head strong { font-size: 26px; }
+  .transfer-form { grid-template-columns: 1fr; }
+  .transfer-form select { min-height: 48px; padding: 0 14px; border-radius: 12px; font-size: 16px; }
+}

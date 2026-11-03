@@ -67,12 +67,21 @@
         <div class="metric"><span>TOTAL PAGO</span><strong>{{ totals.total_pago|money }}</strong><small>{{ "%.1f"|format(totals.percentual_pago) }}% do previsto</small></div>
         <div class="metric"><span>A PAGAR</span><strong>{{ totals.total_em_aberto|money }}</strong><small>Gastos registrados ainda não quitados</small></div>
       </div>
-      {% if totals.alerta_orcamento == 'excedido' %}<p class="budget-alert">O orçamento geral foi ultrapassado em {{ (-totals.total_faltante)|money }} ({{ "%.1f"|format(totals.percentual_orcamento_usado) }}% utilizado).</p>{% elif totals.alerta_orcamento == 'atencao' %}<p class="budget-warning" role="status">Atenção: {{ "%.1f"|format(totals.percentual_orcamento_usado) }}% do orçamento geral utilizado. Restam {{ totals.total_faltante|money }}.</p>{% endif %}
+      {% if result.has_data %}
+      <div class="plan-result {% if result.net < 0 %}is-negative{% endif %}" aria-label="Resultado do planejamento">
+        <div class="plan-result-head"><span class="eyebrow">RESULTADO DO PLANEJAMENTO</span><strong>{{ result.net|money }}</strong><small>{% if result.finished %}{{ "Economizado no total" if result.net >= 0 else "Gasto acima do previsto" }}{% else %}{{ "Folga atual somando tudo" if result.net >= 0 else "Acima do previsto até agora" }}{% endif %}</small></div>
+        <div class="plan-result-rows">
+          <div><span>Sobrou em {{ result.saved_count }} categoria(s)</span><strong>{{ result.saved_total|money }}</strong></div>
+          <div class="is-over"><span>Estourou em {{ result.over_count }} categoria(s)</span><strong>{{ (-result.over_total)|money }}</strong></div>
+        </div>
+        {% if not result.finished %}<p class="plan-result-note">Ainda não é economia: a viagem não terminou. Esse valor é o que está reservado e sem uso.</p>{% endif %}
+      </div>
+      {% endif %}      {% if totals.alerta_orcamento == 'excedido' %}<p class="budget-alert">O orçamento geral foi ultrapassado em {{ (-totals.total_faltante)|money }} ({{ "%.1f"|format(totals.percentual_orcamento_usado) }}% utilizado).</p>{% elif totals.alerta_orcamento == 'atencao' %}<p class="budget-warning" role="status">Atenção: {{ "%.1f"|format(totals.percentual_orcamento_usado) }}% do orçamento geral utilizado. Restam {{ totals.total_faltante|money }}.</p>{% endif %}
     </section>
 
     <section class="record-section category-summary" aria-labelledby="category-summary-title">
       <div class="section-title-row"><div><span class="eyebrow">ACOMPANHAMENTO DO ORÇAMENTO</span><h2 id="category-summary-title">Planejamento por categoria</h2></div><a class="button button-primary" href="{{ url_for('edit_planning', trip_id=trip.id) }}">Editar valores <span aria-hidden="true">+</span></a></div>
-      <div class="table-wrap"><table><thead><tr><th>CATEGORIA</th><th>PREVISTO</th><th>GASTO REGISTRADO</th><th>PAGO</th><th>A PAGAR</th><th>SALDO</th></tr></thead><tbody>
+      <div class="table-wrap"><table><thead><tr><th>CATEGORIA</th><th>PREVISTO</th><th>GASTO REGISTRADO</th><th>PAGO</th><th>A PAGAR</th><th>AINDA DISPONÍVEL</th></tr></thead><tbody>
         {% for line in totals.categorias %}<tr><td class="primary-cell">{{ line.categoria }}</td><td>{{ line.previsto|money }}</td><td>{{ line.gasto|money }}</td><td>{{ line.pago|money }}</td><td>{{ line.em_aberto|money }}</td><td class="category-balance {% if line.alerta_orcamento == 'excedido' %}amount-over{% else %}amount-real{% endif %}"><strong>{{ line.falta|money }}</strong>{% if line.percentual_usado is not none %}<div class="category-progress" role="progressbar" aria-label="{{ line.categoria }}: {{ '%.1f'|format(line.percentual_usado) }}% do previsto usado" aria-valuemin="0" aria-valuemax="100" aria-valuenow="{{ line.progresso }}"><span class="category-progress-fill {% if line.alerta_orcamento == 'excedido' %}over-budget{% elif line.alerta_orcamento == 'atencao' %}near-budget-limit{% endif %}" style="width: {{ line.progresso }}%"></span></div>{% if line.alerta_orcamento == 'excedido' %}<small class="budget-alert">Excedido em {{ (-line.falta)|money }} · {{ "%.1f"|format(line.percentual_usado) }}%</small>{% elif line.alerta_orcamento == 'atencao' %}<small class="budget-warning">Atenção · {{ "%.1f"|format(line.percentual_usado) }}% utilizado</small>{% else %}<small>{{ "%.1f"|format(line.percentual_usado) }}% usado</small>{% endif %}{% else %}<small class="no-plan">Sem previsto</small>{% endif %}</td></tr>{% endfor %}
         <tr class="table-total"><td>TOTAL</td><td>{{ totals.total_previsto|money }}</td><td>{{ totals.total_gasto|money }}</td><td>{{ totals.total_pago|money }}</td><td>{{ totals.total_em_aberto|money }}</td><td>{{ totals.total_faltante|money }}</td></tr>
       </tbody></table></div>
@@ -81,7 +90,7 @@
           <div class="m-item m-item-category">
             <span class="m-item-icon" aria-hidden="true">{{ line.categoria|category_icon }}</span>
             <span class="m-item-main"><strong>{{ line.categoria }}</strong><small>{{ line.gasto|money }} de {{ line.previsto|money }}</small></span>
-            <span class="m-item-side"><strong class="{% if line.alerta_orcamento == 'excedido' %}amount-over{% endif %}">{{ line.falta|money }}</strong><small>saldo</small></span>
+            <span class="m-item-side"><strong class="{% if line.alerta_orcamento == 'excedido' %}amount-over{% endif %}">{{ line.falta|money }}</strong><small>disponível</small></span>
             {% if line.percentual_usado is not none %}<div class="m-progress" role="progressbar" aria-label="{{ line.categoria }}: {{ '%.1f'|format(line.percentual_usado) }}% do previsto usado" aria-valuemin="0" aria-valuemax="100" aria-valuenow="{{ line.progresso }}"><span class="{% if line.alerta_orcamento == 'excedido' %}over-budget{% elif line.alerta_orcamento == 'atencao' %}near-budget-limit{% endif %}" style="width: {{ line.progresso }}%"></span></div>{% endif %}
           </div>
         {% endfor %}

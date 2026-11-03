@@ -509,10 +509,32 @@ def index():
     return render_template("dashboard.html", trip=None, totals=None)
 
 
+def planning_result(trip, totals):
+    lines = [line for line in totals["categorias"] if line["previsto"] > 0 or line["gasto"] > 0]
+    saved = [line for line in lines if line["falta"] > 0]
+    over = [line for line in lines if line["falta"] < 0]
+    try:
+        finished = datetime.strptime(trip["data_volta"], "%d/%m/%Y").date() < date.today()
+    except (KeyError, ValueError):
+        finished = False
+    saved_total = round(sum(line["falta"] for line in saved), 2)
+    over_total = round(-sum(line["falta"] for line in over), 2)
+    return {
+        "saved_count": len(saved),
+        "saved_total": saved_total,
+        "over_count": len(over),
+        "over_total": over_total,
+        "net": round(saved_total - over_total, 2),
+        "finished": finished,
+        "has_data": bool(lines),
+    }
+
+
 @app.get("/trips/<int:trip_id>")
 def dashboard(trip_id):
     trip = get_trip_or_404(trip_id)
     select_trip(trip_id)
+    totals = calcular_totais(trip)
     recent_expenses = sorted(
         trip.get("gastos", []),
         key=lambda expense: datetime.strptime(expense["data_gasto"], "%d/%m/%Y"),
@@ -527,7 +549,8 @@ def dashboard(trip_id):
     return render_template(
         "dashboard.html",
         trip=trip,
-        totals=calcular_totais(trip),
+        totals=totals,
+        result=planning_result(trip, totals),
         recent_expenses=recent_expenses,
         next_activity=next_activity,
         recent_reservations=recent_reservations,
@@ -1184,6 +1207,35 @@ def apply_posted_planning_amounts(planning):
         amount, error = parse_amount(raw_amount, f"O previsto de {item['categoria']}", required=False)
         if not error:
             item["valor_previsto"] = amount or 0.0
+
+
+@app.post("/trips/<int:trip_id>/planning/transfer")
+def transfer_planning_amount(trip_id):
+    trip = get_trip_or_404(trip_id)
+    planning = trip.get("planejamento", [])
+    apply_posted_planning_amounts(planning)
+
+    try:
+        source = int(request.form.get("origem", ""))
+        target = int(request.form.get("destino", ""))
+    except ValueError:
+        source = target = -1
+    amount, error = parse_amount(request.form.get("valor_mover"), "O valor a mover")
+
+    if not (0 <= source < len(planning) and 0 <= target < len(planning)) or source == target:
+        flash("Escolha duas categorias diferentes para mover o valor.", "error")
+    elif error:
+        flash(error, "error")
+    elif amount <= 0:
+        flash("Informe um valor maior que zero para mover.", "error")
+    elif amount > planning[source]["valor_previsto"] + 0.001:
+        flash(f"{planning[source]['categoria']} tem apenas {format_money(planning[source]['valor_previsto'])} previsto.", "error")
+    else:
+        planning[source]["valor_previsto"] = round(planning[source]["valor_previsto"] - amount, 2)
+        planning[target]["valor_previsto"] = round(planning[target]["valor_previsto"] + amount, 2)
+        flash(f"{format_money(amount)} movido de {planning[source]['categoria']} para {planning[target]['categoria']}.", "success")
+    storage_manager.save_viagem(trip)
+    return redirect(url_for("edit_planning", trip_id=trip_id))
 
 
 @app.post("/trips/<int:trip_id>/planning/categories")

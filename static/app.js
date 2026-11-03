@@ -392,7 +392,7 @@
 // Seletor em painel inferior (só no celular): substitui a lista nativa do sistema.
 (() => {
   const mobile = window.matchMedia("(max-width: 720px)");
-  const selects = document.querySelectorAll(".edit-form select, .filter-form select");
+  const selects = document.querySelectorAll(".edit-form select, .filter-form select, .transfer-form select");
   if (!selects.length) return;
 
   let sheet;
