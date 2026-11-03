@@ -1231,22 +1231,74 @@ def add_planning_category(trip_id):
     return redirect(url_for("edit_planning", trip_id=trip_id))
 
 
+@app.route("/trips/<int:trip_id>/planning/categories/<int:category_index>", methods=["GET", "POST"])
+def edit_planning_category(trip_id, category_index):
+    trip = get_trip_or_404(trip_id)
+    select_trip(trip_id)
+    planning = trip.get("planejamento", [])
+    if category_index < 0 or category_index >= len(planning):
+        abort(404)
+    item = planning[category_index]
+    old_name = item["categoria"]
+    has_expenses = any(expense["categoria"] == old_name for expense in trip.get("gastos", []))
+    spent = sum(expense.get("valor_em_brl", 0) for expense in trip.get("gastos", []) if expense["categoria"] == old_name)
+
+    if request.method == "POST":
+        name = request.form.get("categoria", "").strip()
+        amount, error = parse_amount(request.form.get("previsto"), "O valor previsto", required=False)
+        if not name:
+            error = "Informe o nome da categoria."
+        elif len(name) > 100:
+            error = "O nome da categoria deve ter até 100 caracteres."
+        elif any(
+            index != category_index and other["categoria"].casefold() == name.casefold()
+            for index, other in enumerate(planning)
+        ):
+            error = "Essa categoria já existe nesta viagem."
+        if error:
+            flash(error, "error")
+        else:
+            item["categoria"] = name
+            item["valor_previsto"] = amount or 0.0
+            if name != old_name:
+                for expense in trip.get("gastos", []):
+                    if expense["categoria"] == old_name:
+                        expense["categoria"] = name
+            storage_manager.save_viagem(trip)
+            flash("Categoria atualizada.", "success")
+            return redirect(url_for("dashboard", trip_id=trip_id) + "#resumo")
+
+    return render_template(
+        "category_form.html",
+        trip=trip,
+        item=item,
+        category_index=category_index,
+        has_expenses=has_expenses,
+        spent=spent,
+    )
+
+
 @app.post("/trips/<int:trip_id>/planning/categories/<int:category_index>/delete")
 def delete_planning_category(trip_id, category_index):
     trip = get_trip_or_404(trip_id)
     planning = trip.get("planejamento", [])
     if category_index < 0 or category_index >= len(planning):
         abort(404)
+    from_dashboard = request.form.get("voltar") == "painel"
     apply_posted_planning_amounts(planning)
     category = planning[category_index]["categoria"]
     if any(expense["categoria"] == category for expense in trip.get("gastos", [])):
         storage_manager.save_viagem(trip)
         flash("Não é possível remover uma categoria que já possui gastos.", "error")
+        if from_dashboard:
+            return redirect(url_for("edit_planning_category", trip_id=trip_id, category_index=category_index))
         return redirect(url_for("edit_planning", trip_id=trip_id))
 
     trip["planejamento"].pop(category_index)
     storage_manager.save_viagem(trip)
     flash("Categoria removida.", "success")
+    if from_dashboard:
+        return redirect(url_for("dashboard", trip_id=trip_id) + "#resumo")
     return redirect(url_for("edit_planning", trip_id=trip_id))
 
 

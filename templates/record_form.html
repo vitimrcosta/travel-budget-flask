@@ -56,4 +56,10 @@
     {% endif %}
     <div class="form-actions">{% if is_expense %}<a class="button button-secondary" href="{{ url_for('dashboard', trip_id=trip.id) }}">Cancelar</a>{% else %}<a class="button button-secondary" href="{{ url_for('activities_list', trip_id=trip.id) }}">Cancelar</a>{% endif %}<button class="button button-primary" type="submit">Salvar</button></div>
   </form>
+  {% if item %}
+    <form class="danger-zone" method="post" action="{{ url_for('delete_expense' if is_expense else 'delete_activity', trip_id=trip.id, item_id=item.id) }}" onsubmit="return confirm('{{ 'Remover este gasto?' if is_expense else 'Remover esta atividade?' }}')">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <button class="button button-danger" type="submit">{{ "Excluir gasto" if is_expense else "Excluir atividade" }}</button>
+    </form>
+  {% endif %}
 {% endblock %}

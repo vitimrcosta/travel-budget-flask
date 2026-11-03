@@ -29,4 +29,10 @@
     <p class="field-hint">Valores e pagamentos devem ser registrados em Gastos para não duplicar o orçamento. Comprovantes podem ser guardados em Documentos da viagem.</p>
     <div class="form-actions"><a class="button button-secondary" href="{{ url_for('reservations_list', trip_id=trip.id) }}">Cancelar</a><button class="button button-primary" type="submit">Salvar reserva</button></div>
   </form>
+  {% if item %}
+    <form class="danger-zone" method="post" action="{{ url_for('delete_reservation', trip_id=trip.id, item_id=item.id) }}" onsubmit="return confirm('Remover esta reserva?')">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <button class="button button-danger" type="submit">Excluir reserva</button>
+    </form>
+  {% endif %}
 {% endblock %}

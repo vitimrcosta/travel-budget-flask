@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% block title %}Editar categoria | Rota{% endblock %}
+{% block content %}
+  <div class="form-page-heading"><a class="back-link" href="{{ url_for('dashboard', trip_id=trip.id) }}#resumo">← Voltar para {{ trip.destino }}</a><span class="eyebrow">ORÇAMENTO DA VIAGEM</span><h1>Editar categoria</h1><p>{{ spent|money }} gastos até agora nesta categoria.</p></div>
+  <form class="edit-form planning-form" method="post">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <label>Nome da categoria<input type="text" name="categoria" maxlength="100" required value="{{ request.form.get('categoria', item.categoria) }}"></label>
+    <label>Valor previsto<div class="currency-field"><span aria-hidden="true">R$</span><input type="text" name="previsto" inputmode="decimal" data-money value="{{ request.form.get('previsto', item.valor_previsto|money_value) }}" placeholder="0,00"></div></label>
+    <div class="form-actions"><a class="button button-secondary" href="{{ url_for('dashboard', trip_id=trip.id) }}#resumo">Cancelar</a><button class="button button-primary" type="submit">Salvar categoria</button></div>
+  </form>
+  <form class="danger-zone" method="post" action="{{ url_for('delete_planning_category', trip_id=trip.id, category_index=category_index) }}" onsubmit="return confirm('Remover a categoria {{ item.categoria }}?')">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <input type="hidden" name="voltar" value="painel">
+    <button class="button button-danger" type="submit" {% if has_expenses %}disabled{% endif %}>Excluir categoria</button>
+    {% if has_expenses %}<small>Esta categoria possui gastos e não pode ser excluída. Edite ou remova os gastos antes.</small>{% endif %}
+  </form>
+{% endblock %}

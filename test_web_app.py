@@ -1086,6 +1086,61 @@ class WebAppTests(unittest.TestCase):
         self.assertRegex(form, r'<option value="1"\s+selected')
         db_service.storage_manager.delete_viagem(trip_id)
 
+    def test_editar_categoria_pelo_painel_e_excluir_nas_edicoes(self):
+        self.client.post("/trips/new", data={"destino": "Editar", "data_ida": "2026-07-10", "data_volta": "2026-07-15"})
+        with self.client.session_transaction() as browser_session:
+            trip_id = browser_session["selected_trip_id"]
+        self.client.post(f"/trips/{trip_id}/planning/categories", data={"categoria_nova": "Pets"})
+        self.client.post(f"/trips/{trip_id}/planning/categories", data={"categoria_nova": "Passeios"})
+        rows = db_service.storage_manager.get_viagem(trip_id)["planejamento"]
+        pets = next(i for i, r in enumerate(rows) if r["categoria"] == "Pets")
+        passeios = next(i for i, r in enumerate(rows) if r["categoria"] == "Passeios")
+
+        dashboard = self.client.get(f"/trips/{trip_id}").get_data(as_text=True)
+        self.assertIn(f"/trips/{trip_id}/planning/categories/{pets}", dashboard)
+
+        response = self.client.post(
+            f"/trips/{trip_id}/planning/categories/{pets}",
+            data={"categoria": "Animais", "previsto": "120,50"},
+            follow_redirects=True,
+        )
+        self.assertIn("Categoria atualizada", response.get_data(as_text=True))
+        rows = db_service.storage_manager.get_viagem(trip_id)["planejamento"]
+        self.assertEqual((rows[pets]["categoria"], rows[pets]["valor_previsto"]), ("Animais", 120.5))
+
+        duplicate = self.client.post(
+            f"/trips/{trip_id}/planning/categories/{pets}",
+            data={"categoria": "passeios", "previsto": "1"},
+        )
+        self.assertIn("já existe", duplicate.get_data(as_text=True))
+
+        self.client.post(
+            f"/trips/{trip_id}/expenses/new",
+            data={"data_gasto": "2026-07-11", "categoria": "Animais", "descricao": "Ração", "moeda": "BRL", "valor_original": "10,00", "pago": "0"},
+        )
+        expense = db_service.storage_manager.get_viagem(trip_id)["gastos"][0]
+        edit_page = self.client.get(f"/trips/{trip_id}/expenses/{expense['id']}/edit").get_data(as_text=True)
+        self.assertIn("Excluir gasto", edit_page)
+        self.assertNotIn("Excluir gasto", self.client.get(f"/trips/{trip_id}/expenses/new").get_data(as_text=True))
+
+        self.client.post(
+            f"/trips/{trip_id}/planning/categories/{pets}",
+            data={"categoria": "Bichos", "previsto": "120,50"},
+        )
+        self.assertEqual(db_service.storage_manager.get_viagem(trip_id)["gastos"][0]["categoria"], "Bichos")
+
+        blocked = self.client.post(
+            f"/trips/{trip_id}/planning/categories/{pets}/delete",
+            data={"voltar": "painel"},
+            follow_redirects=True,
+        )
+        self.assertIn("Não é possível remover", blocked.get_data(as_text=True))
+
+        self.client.post(f"/trips/{trip_id}/planning/categories/{passeios}/delete", data={"voltar": "painel"})
+        names = [r["categoria"] for r in db_service.storage_manager.get_viagem(trip_id)["planejamento"]]
+        self.assertNotIn("Passeios", names)
+        db_service.storage_manager.delete_viagem(trip_id)
+
     def test_painel_mostra_cinco_gastos_e_lista_pagina(self):
         trip = {
             "destino": "Lista extensa",

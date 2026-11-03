@@ -83,7 +83,9 @@ O planejamento define quanto você pretende gastar em cada categoria (Alimentaç
 
 **Adicionar categoria:** na mesma tela, digite o nome em "Categorias desta viagem" e toque em adicionar. Os valores que você já digitou são mantidos.
 
-**Remover categoria:** só é possível se ela **não tiver gastos**. Categorias com gastos mostram o botão desativado.
+**Editar uma categoria:** no painel, toque na categoria (na tabela ou na lista do celular). Abre uma tela só dela, onde você muda o **nome** e o **valor previsto**. Se renomear, os gastos dessa categoria acompanham o novo nome. Nessa tela também há **Excluir categoria**.
+
+**Remover categoria:** só é possível se ela **não tiver gastos**. Com gastos, o botão fica desativado e aparece o motivo.
 
 O **Total previsto** é a soma de todas as categorias e funciona como o orçamento geral da viagem.
 
@@ -110,7 +112,7 @@ O **Total previsto** é a soma de todas as categorias e funciona como o orçamen
 
 Os valores são sempre convertidos e controlados em **reais (BRL)**.
 
-**Lista de gastos:** mostra cartões com ícone da categoria, descrição, data e valor. Use o botão **Filtros** para filtrar por categoria, período, situação de pagamento ou texto da descrição. Toque em um gasto para editar ou excluir.
+**Lista de gastos:** mostra cartões com ícone da categoria, descrição, data e valor. Use o botão **Filtros** para filtrar por categoria, período, situação de pagamento ou texto da descrição. Toque em um gasto para editar. Na tela de edição há o botão **Excluir gasto** no fim da página (com confirmação). O mesmo vale para **Excluir atividade** e **Excluir reserva**.
 
 **Seletores no celular:** as listas (como a de categoria) abrem em um painel inferior com ícones, no estilo do app.
 
