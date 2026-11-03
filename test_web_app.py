@@ -1086,7 +1086,14 @@ class WebAppTests(unittest.TestCase):
         )
         self.assertIn("tem apenas", response.get_data(as_text=True))
         dashboard = self.client.get(f"/trips/{trip_id}").get_data(as_text=True)
+        self.assertNotIn("RESULTADO DO PLANEJAMENTO", dashboard)
+        self.client.post(
+            f"/trips/{trip_id}/expenses/new",
+            data={"data_gasto": "2026-07-11", "categoria": rows[0]["categoria"], "descricao": "Teste", "moeda": "BRL", "valor_original": "50,00", "pago": "1", "forma_pagamento": "Pix"},
+        )
+        dashboard = self.client.get(f"/trips/{trip_id}").get_data(as_text=True)
         self.assertIn("RESULTADO DO PLANEJAMENTO", dashboard)
+        self.assertIn("Sobrou em 1 categoria", dashboard)
         self.assertIn("Economizado no total", dashboard)
         form = self.client.get(f"/trips/{trip_id}/expenses/new").get_data(as_text=True)
         self.assertRegex(form, r'<option value="1"\s+selected')

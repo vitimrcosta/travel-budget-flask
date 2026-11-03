@@ -510,7 +510,7 @@ def index():
 
 
 def planning_result(trip, totals):
-    lines = [line for line in totals["categorias"] if line["previsto"] > 0 or line["gasto"] > 0]
+    lines = [line for line in totals["categorias"] if line["gasto"] > 0]
     saved = [line for line in lines if line["falta"] > 0]
     over = [line for line in lines if line["falta"] < 0]
     try:
