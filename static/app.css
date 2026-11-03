@@ -1061,3 +1061,20 @@ td { padding: 13px 8px; border-top: 1px solid var(--line); color: #626e65; font-
   .transfer-form { grid-template-columns: 1fr; }
   .transfer-form select { min-height: 48px; padding: 0 14px; border-radius: 12px; font-size: 16px; }
 }
+/* Painel no celular: resultado do planejamento */
+@media screen and (max-width: 720px) {
+  .metric-pending strong { color: #a43e2d; }
+  .plan-result { gap: 10px; margin-top: 10px; padding: 16px; border: 0; border-radius: 16px; background: linear-gradient(135deg, #f1f7f0, #e7f0e6); box-shadow: 0 1px 0 rgba(0,0,0,.04); }
+  .plan-result.is-negative { background: #fff0eb; }
+  .plan-result-head { grid-template-columns: 1fr auto; align-items: center; gap: 2px 10px; }
+  .plan-result-head .eyebrow { grid-column: 1 / -1; font-size: 10px; }
+  .plan-result-head strong { font-size: 28px; line-height: 1.1; }
+  .plan-result-head small { text-align: right; max-width: 120px; }
+  .plan-result-rows { grid-template-columns: 1fr 1fr; gap: 8px; }
+  .plan-result-rows > div { flex-direction: column; align-items: flex-start; gap: 2px; padding: 10px 12px; border-radius: 12px; background: rgba(255,255,255,.7); font-size: 11px; color: var(--muted); }
+  .plan-result-rows > div strong { color: var(--green); font-size: 15px; }
+  .plan-result-note { padding-top: 2px; font-size: 11px; }
+  :root[data-theme="dark"] .plan-result { background: linear-gradient(135deg, #20382a, #263d2d); }
+  :root[data-theme="dark"] .plan-result.is-negative { background: #432b27; }
+  :root[data-theme="dark"] .plan-result-rows > div { background: rgba(0,0,0,.25); color: #b9c7bd; }
+}

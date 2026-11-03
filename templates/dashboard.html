@@ -63,9 +63,11 @@
           {% endif %}
         </div>
         <div class="metric"><span>TOTAL PREVISTO</span><strong>{{ totals.total_previsto|money }}</strong><small>Planejamento por categoria</small></div>
-        <div class="metric"><span>GASTO REGISTRADO</span><strong>{{ totals.total_gasto|money }}</strong><small>Inclui gastos pendentes</small></div>
-        <div class="metric"><span>TOTAL PAGO</span><strong>{{ totals.total_pago|money }}</strong><small>{{ "%.1f"|format(totals.percentual_pago) }}% do previsto</small></div>
-        <div class="metric"><span>A PAGAR</span><strong>{{ totals.total_em_aberto|money }}</strong><small>Gastos registrados ainda não quitados</small></div>
+        <div class="metric"><span>GASTO REGISTRADO</span><strong>{{ totals.total_gasto|money }}</strong><small>{{ "%.1f"|format(totals.percentual_pago) }}% do previsto pago</small></div>
+        {% if totals.total_em_aberto > 0 %}
+        <div class="metric"><span>TOTAL PAGO</span><strong>{{ totals.total_pago|money }}</strong><small>Já quitado</small></div>
+        <div class="metric metric-pending"><span>A PAGAR</span><strong>{{ totals.total_em_aberto|money }}</strong><small>Gastos registrados ainda não quitados</small></div>
+        {% endif %}
       </div>
       {% if result.has_data %}
       <div class="plan-result {% if result.net < 0 %}is-negative{% endif %}" aria-label="Resultado do planejamento">
@@ -76,7 +78,8 @@
         </div>
         {% if not result.finished %}<p class="plan-result-note">Ainda não é economia: a viagem não terminou. Esse valor é o que está reservado e sem uso.</p>{% endif %}
       </div>
-      {% endif %}      {% if totals.alerta_orcamento == 'excedido' %}<p class="budget-alert">O orçamento geral foi ultrapassado em {{ (-totals.total_faltante)|money }} ({{ "%.1f"|format(totals.percentual_orcamento_usado) }}% utilizado).</p>{% elif totals.alerta_orcamento == 'atencao' %}<p class="budget-warning" role="status">Atenção: {{ "%.1f"|format(totals.percentual_orcamento_usado) }}% do orçamento geral utilizado. Restam {{ totals.total_faltante|money }}.</p>{% endif %}
+      {% endif %}
+      {% if totals.alerta_orcamento == 'excedido' %}<p class="budget-alert">O orçamento geral foi ultrapassado em {{ (-totals.total_faltante)|money }} ({{ "%.1f"|format(totals.percentual_orcamento_usado) }}% utilizado).</p>{% elif totals.alerta_orcamento == 'atencao' %}<p class="budget-warning" role="status">Atenção: {{ "%.1f"|format(totals.percentual_orcamento_usado) }}% do orçamento geral utilizado. Restam {{ totals.total_faltante|money }}.</p>{% endif %}
     </section>
 
     <section class="record-section category-summary" aria-labelledby="category-summary-title">
