@@ -4,6 +4,8 @@ Aplicação web pessoal para organizar viagens, roteiro, reservas e orçamento. 
 
 > **Uso local:** por padrão, o sistema não exige login e usa armazenamento local como fallback. Para publicar na internet, configure autenticação, MySQL obrigatório e armazenamento externo conforme a seção de deploy abaixo.
 
+> **Como usar:** veja o [Guia de uso](GUIA_DE_USO.md) para um passo a passo de todas as funcionalidades.
+
 ## Funcionalidades
 
 - Criar, editar, selecionar e excluir viagens com destino, período e bandeira.
