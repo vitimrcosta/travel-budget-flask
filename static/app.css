@@ -1013,3 +1013,28 @@ td { padding: 13px 8px; border-top: 1px solid var(--line); color: #626e65; font-
   .edit-form .payment-options-row { grid-template-columns: 1fr 1fr; gap: 8px 12px; }
 }
 :root[data-theme="dark"] .edit-form:not(.planning-form) .form-actions { box-shadow: 0 -8px 18px rgba(0, 0, 0, .3); }
+/* Seletor em painel inferior + espaçamento dos botões do planejamento */
+.select-sheet { display: none; }
+@media screen and (max-width: 720px) {
+  .select-sheet:not([hidden]) { position: fixed; inset: 0; z-index: 60; display: block; }
+  .select-sheet-backdrop { position: absolute; inset: 0; background: rgba(8, 16, 11, .55); animation: sheet-fade .18s ease both; }
+  .select-sheet-panel { position: absolute; right: 0; bottom: 0; left: 0; display: grid; grid-template-rows: auto auto minmax(0, 1fr); max-height: 72vh; padding: 8px 14px calc(14px + env(safe-area-inset-bottom)); border-radius: 22px 22px 0 0; color: var(--ink); background: var(--white); box-shadow: 0 -12px 40px rgba(0, 0, 0, .25); animation: sheet-up .22s ease both; }
+  .select-sheet-handle { width: 40px; height: 4px; margin: 0 auto 10px; border-radius: 999px; background: var(--line); }
+  .select-sheet-title { margin: 0 0 8px; padding: 0 4px; font-size: 16px; }
+  .select-sheet-list { display: grid; align-content: start; gap: 4px; overflow-y: auto; overscroll-behavior: contain; }
+  .select-sheet-option { display: flex; align-items: center; gap: 12px; width: 100%; min-height: 52px; padding: 0 12px; border: 0; border-radius: 12px; color: var(--ink); background: transparent; font: inherit; font-size: 15px; text-align: left; -webkit-tap-highlight-color: transparent; }
+  .select-sheet-option:active { background: var(--mint); }
+  .select-sheet-option[aria-selected="true"] { color: var(--green); background: var(--mint); font-weight: 700; }
+  .select-sheet-option:disabled { opacity: .45; }
+  .select-sheet-icon { display: grid; flex: 0 0 auto; width: 34px; height: 34px; place-items: center; border-radius: 10px; background: var(--mint); font-size: 17px; }
+  .select-sheet-text { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+  .select-sheet-check { visibility: hidden; font-weight: 800; }
+  .select-sheet-option[aria-selected="true"] .select-sheet-check { visibility: visible; }
+  body.select-sheet-open { overflow: hidden; }
+  body.select-sheet-open .quick-expense-fab, body.select-sheet-open .bottom-nav { visibility: hidden; }
+
+  .planning-form { padding-bottom: 16px; }
+  .planning-form .form-actions { margin-top: 6px; padding: 4px 0 0; }
+}
+@keyframes sheet-up { from { transform: translateY(100%); } to { transform: none; } }
+@keyframes sheet-fade { from { opacity: 0; } to { opacity: 1; } }

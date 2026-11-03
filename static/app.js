@@ -389,3 +389,87 @@
     });
   }
 })();
+// Seletor em painel inferior (só no celular): substitui a lista nativa do sistema.
+(() => {
+  const mobile = window.matchMedia("(max-width: 720px)");
+  const selects = document.querySelectorAll(".edit-form select, .filter-form select");
+  if (!selects.length) return;
+
+  let sheet;
+  let activeSelect = null;
+  let lastFocus = null;
+
+  const closeSheet = () => {
+    if (!sheet) return;
+    sheet.hidden = true;
+    document.body.classList.remove("select-sheet-open");
+    activeSelect = null;
+    if (lastFocus) lastFocus.focus({ preventScroll: true });
+  };
+
+  const buildSheet = () => {
+    sheet = document.createElement("div");
+    sheet.className = "select-sheet";
+    sheet.hidden = true;
+    sheet.innerHTML =
+      '<div class="select-sheet-backdrop" data-close></div>' +
+      '<div class="select-sheet-panel" role="dialog" aria-modal="true">' +
+      '<div class="select-sheet-handle" aria-hidden="true"></div>' +
+      '<h2 class="select-sheet-title"></h2>' +
+      '<div class="select-sheet-list" role="listbox"></div></div>';
+    sheet.addEventListener("click", (event) => {
+      if (event.target.closest("[data-close]")) closeSheet();
+    });
+    document.addEventListener("keydown", (event) => {
+      if (event.key === "Escape" && sheet && !sheet.hidden) closeSheet();
+    });
+    document.body.appendChild(sheet);
+  };
+
+  const openSheet = (select) => {
+    if (!sheet) buildSheet();
+    activeSelect = select;
+    lastFocus = select;
+    const label = select.closest("label");
+    const title = (label && label.firstChild && label.firstChild.textContent.trim()) || select.getAttribute("aria-label") || "Selecione";
+    sheet.querySelector(".select-sheet-title").textContent = title;
+    const list = sheet.querySelector(".select-sheet-list");
+    list.textContent = "";
+    Array.from(select.options).forEach((option) => {
+      const item = document.createElement("button");
+      item.type = "button";
+      item.className = "select-sheet-option";
+      item.setAttribute("role", "option");
+      item.setAttribute("aria-selected", String(option.selected));
+      item.disabled = option.disabled;
+      const icon = option.dataset.icon ? `<span class="select-sheet-icon" aria-hidden="true">${option.dataset.icon}</span>` : "";
+      item.innerHTML = `${icon}<span class="select-sheet-text"></span><span class="select-sheet-check" aria-hidden="true">✓</span>`;
+      item.querySelector(".select-sheet-text").textContent = option.textContent;
+      item.addEventListener("click", () => {
+        const target = activeSelect;
+        target.value = option.value;
+        target.dispatchEvent(new Event("input", { bubbles: true }));
+        target.dispatchEvent(new Event("change", { bubbles: true }));
+        closeSheet();
+      });
+      list.appendChild(item);
+    });
+    sheet.hidden = false;
+    document.body.classList.add("select-sheet-open");
+    const selected = list.querySelector('[aria-selected="true"]');
+    (selected || list.firstElementChild)?.scrollIntoView({ block: "center" });
+  };
+
+  selects.forEach((select) => {
+    select.addEventListener("mousedown", (event) => {
+      if (!mobile.matches) return;
+      event.preventDefault();
+      openSheet(select);
+    });
+    select.addEventListener("keydown", (event) => {
+      if (!mobile.matches || (event.key !== "Enter" && event.key !== " ")) return;
+      event.preventDefault();
+      openSheet(select);
+    });
+  });
+})();

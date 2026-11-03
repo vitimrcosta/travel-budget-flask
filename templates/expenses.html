@@ -11,7 +11,7 @@
 
   <section class="expense-filters" aria-label="Filtros dos gastos">
     <form method="get" action="{{ url_for('expenses_list', trip_id=trip.id) }}" class="filter-form">
-      <label>Categoria<select name="categoria"><option value="">Todas</option>{% for category in categories %}<option value="{{ category }}" {% if filters.categoria == category %}selected{% endif %}>{{ category }}</option>{% endfor %}</select></label>
+      <label>Categoria<select name="categoria"><option value="">Todas</option>{% for category in categories %}<option value="{{ category }}" data-icon="{{ category|category_icon }}" {% if filters.categoria == category %}selected{% endif %}>{{ category }}</option>{% endfor %}</select></label>
       <label>Data inicial<input type="date" name="data_inicio" value="{{ filters.data_inicio }}"></label>
       <label>Data final<input type="date" name="data_fim" value="{{ filters.data_fim }}"></label>
       <label>Pagamento<select name="pago"><option value="">Todos</option><option value="sim" {% if filters.pago == 'sim' %}selected{% endif %}>Pago</option><option value="nao" {% if filters.pago == 'nao' %}selected{% endif %}>Pendente</option></select></label>
