@@ -1059,32 +1059,18 @@ class WebAppTests(unittest.TestCase):
 
         db_service.storage_manager.delete_viagem(trip_id)
 
-    def test_mover_valor_entre_categorias_e_resultado(self):
-        self.client.post("/trips/new", data={"destino": "Mover", "data_ida": "2026-07-10", "data_volta": "2026-07-15"})
+    def test_resultado_do_planejamento_so_conta_categorias_com_gasto(self):
+        self.client.post("/trips/new", data={"destino": "Resultado", "data_ida": "2026-07-10", "data_volta": "2026-07-15"})
         with self.client.session_transaction() as browser_session:
             trip_id = browser_session["selected_trip_id"]
-        planning = db_service.storage_manager.get_viagem(trip_id)["planejamento"]
         self.client.post(f"/trips/{trip_id}/planning/categories", data={"categoria_nova": "Pets"})
         self.client.post(
             f"/trips/{trip_id}/planning/categories",
             data={"categoria_nova": "Passeios", "previsto_0": "300", "previsto_1": "50"},
         )
         page = self.client.get(f"/trips/{trip_id}/planning").get_data(as_text=True)
-        self.assertIn("Mover valor entre categorias", page)
-        response = self.client.post(
-            f"/trips/{trip_id}/planning/transfer",
-            data={"origem": "0", "destino": "1", "valor_mover": "100,00"},
-            follow_redirects=True,
-        )
-        self.assertIn("movido de", response.get_data(as_text=True))
+        self.assertNotIn("Mover valor entre categorias", page)
         rows = db_service.storage_manager.get_viagem(trip_id)["planejamento"]
-        self.assertEqual((rows[0]["valor_previsto"], rows[1]["valor_previsto"]), (200.0, 100.0))
-        response = self.client.post(
-            f"/trips/{trip_id}/planning/transfer",
-            data={"origem": "0", "destino": "1", "valor_mover": "999"},
-            follow_redirects=True,
-        )
-        self.assertIn("tem apenas", response.get_data(as_text=True))
         dashboard = self.client.get(f"/trips/{trip_id}").get_data(as_text=True)
         self.assertNotIn("RESULTADO DO PLANEJAMENTO", dashboard)
         self.client.post(

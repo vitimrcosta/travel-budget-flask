@@ -1209,35 +1209,6 @@ def apply_posted_planning_amounts(planning):
             item["valor_previsto"] = amount or 0.0
 
 
-@app.post("/trips/<int:trip_id>/planning/transfer")
-def transfer_planning_amount(trip_id):
-    trip = get_trip_or_404(trip_id)
-    planning = trip.get("planejamento", [])
-    apply_posted_planning_amounts(planning)
-
-    try:
-        source = int(request.form.get("origem", ""))
-        target = int(request.form.get("destino", ""))
-    except ValueError:
-        source = target = -1
-    amount, error = parse_amount(request.form.get("valor_mover"), "O valor a mover")
-
-    if not (0 <= source < len(planning) and 0 <= target < len(planning)) or source == target:
-        flash("Escolha duas categorias diferentes para mover o valor.", "error")
-    elif error:
-        flash(error, "error")
-    elif amount <= 0:
-        flash("Informe um valor maior que zero para mover.", "error")
-    elif amount > planning[source]["valor_previsto"] + 0.001:
-        flash(f"{planning[source]['categoria']} tem apenas {format_money(planning[source]['valor_previsto'])} previsto.", "error")
-    else:
-        planning[source]["valor_previsto"] = round(planning[source]["valor_previsto"] - amount, 2)
-        planning[target]["valor_previsto"] = round(planning[target]["valor_previsto"] + amount, 2)
-        flash(f"{format_money(amount)} movido de {planning[source]['categoria']} para {planning[target]['categoria']}.", "success")
-    storage_manager.save_viagem(trip)
-    return redirect(url_for("edit_planning", trip_id=trip_id))
-
-
 @app.post("/trips/<int:trip_id>/planning/categories")
 def add_planning_category(trip_id):
     trip = get_trip_or_404(trip_id)
