@@ -1692,8 +1692,10 @@ td { padding: 13px 8px; border-top: 1px solid var(--line); color: #626e65; font-
   .expense-table-wrap th { white-space: normal; line-height: 1.25; }
   .expense-table-wrap th, .expense-table-wrap td { padding-left: 7px; padding-right: 7px; }
   .expense-table-wrap td.expense-actions-cell { min-width: 0; }
-  .expense-table-wrap .row-actions { flex-wrap: wrap; justify-content: flex-end; }
-  .expense-results .table-wrap { overflow-x: visible; }
+  .expense-table-wrap td.expense-actions-cell { min-width: 138px; white-space: nowrap; }
+  .expense-table-wrap .row-actions { flex-wrap: nowrap; justify-content: flex-end; }
+  .expense-results .table-wrap { overflow-x: visible; border: 0; background: transparent; border-radius: 0; }
+  :root[data-theme="dark"] .expense-results .table-wrap { border: 0; background: transparent; }
 }
 @media screen and (min-width: 1081px) {
   .danger-zone, .edit-form + .danger-zone { max-width: 980px; }
