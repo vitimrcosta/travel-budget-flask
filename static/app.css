@@ -1348,6 +1348,7 @@ td { padding: 13px 8px; border-top: 1px solid var(--line); color: #626e65; font-
 
   .filter-actions {
     display: flex;
+    grid-column: 1 / -1;
     align-items: end;
     justify-content: flex-end;
     gap: 9px;
