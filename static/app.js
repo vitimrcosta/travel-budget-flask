@@ -473,3 +473,18 @@
     });
   });
 })();
+
+(function autoDismissFlash() {
+  document.querySelectorAll(".flash:not(.flash-error)").forEach((flash) => {
+    setTimeout(() => {
+      flash.style.transition = "opacity .4s, max-height .4s, padding .4s, margin .4s";
+      flash.style.overflow = "hidden";
+      flash.style.maxHeight = flash.offsetHeight + "px";
+      void flash.offsetHeight;
+      flash.style.opacity = "0";
+      flash.style.maxHeight = "0";
+      flash.style.paddingTop = flash.style.paddingBottom = "0";
+      setTimeout(() => flash.remove(), 450);
+    }, 4000);
+  });
+})();
