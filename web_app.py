@@ -4,7 +4,7 @@ import json
 import os
 import secrets
 import unicodedata
-from datetime import date, datetime, timedelta, time as datetime_time
+from datetime import date, datetime, timedelta, timezone, time as datetime_time
 from decimal import Decimal, InvalidOperation, ROUND_HALF_UP
 from math import ceil
 from pathlib import Path
@@ -532,6 +532,24 @@ def planning_result(trip, totals):
     }
 
 
+def trip_countdown(trip):
+    today = datetime.now(timezone(timedelta(hours=-3))).date()
+    start = datetime.strptime(trip["data_ida"], "%d/%m/%Y").date()
+    end = datetime.strptime(trip["data_volta"], "%d/%m/%Y").date()
+    total_days = (end - start).days + 1
+    if today < start:
+        days = (start - today).days
+        return {"state": "before", "number": days, "unit": "dia" if days == 1 else "dias",
+                "label": "para embarcar", "total_days": total_days, "progress": 0}
+    if today <= end:
+        current = (today - start).days + 1
+        return {"state": "during", "number": current, "unit": f"de {total_days}",
+                "label": "Viagem em andamento", "total_days": total_days,
+                "progress": round(current / total_days * 100)}
+    return {"state": "after", "number": total_days, "unit": "dias" if total_days != 1 else "dia",
+            "label": "Viagem concluída", "total_days": total_days, "progress": 100}
+
+
 @app.get("/trips/<int:trip_id>")
 def dashboard(trip_id):
     trip = get_trip_or_404(trip_id)
@@ -553,6 +571,7 @@ def dashboard(trip_id):
         trip=trip,
         totals=totals,
         result=planning_result(trip, totals),
+        countdown=trip_countdown(trip),
         recent_expenses=recent_expenses,
         next_activity=next_activity,
         recent_reservations=recent_reservations,

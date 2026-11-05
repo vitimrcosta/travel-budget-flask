@@ -245,6 +245,16 @@ class BackupServiceTests(unittest.TestCase):
 
 
 class WebAppTests(unittest.TestCase):
+    def test_trip_countdown_states(self):
+        fmt = lambda d: d.strftime("%d/%m/%Y")
+        today = datetime.now(web_app.timezone(timedelta(hours=-3))).date()
+        before = web_app.trip_countdown({"data_ida": fmt(today + timedelta(days=10)), "data_volta": fmt(today + timedelta(days=16))})
+        self.assertEqual((before["state"], before["number"], before["total_days"]), ("before", 10, 7))
+        during = web_app.trip_countdown({"data_ida": fmt(today - timedelta(days=1)), "data_volta": fmt(today + timedelta(days=2))})
+        self.assertEqual((during["state"], during["number"], during["total_days"]), ("during", 2, 4))
+        after = web_app.trip_countdown({"data_ida": fmt(today - timedelta(days=9)), "data_volta": fmt(today - timedelta(days=5))})
+        self.assertEqual(after["state"], "after")
+
     def setUp(self):
         self.temp_dir = TemporaryDirectory()
         self.original_data_file = db_service.DATA_FILE
