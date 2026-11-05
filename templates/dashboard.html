@@ -44,24 +44,17 @@
       </div>
     </section>
 
-    <section class="trip-countdown is-{{ countdown.state }}" aria-label="Contagem regressiva da viagem">
-      <div class="countdown-main">
-        <span class="countdown-eyebrow">{% if countdown.state == 'before' %}CONTAGEM REGRESSIVA{% elif countdown.state == 'during' %}VIAGEM EM ANDAMENTO{% else %}VIAGEM CONCLUÍDA{% endif %}</span>
-        {% if countdown.state == 'before' and countdown.number == 0 %}
-          <strong class="countdown-number countdown-today">É hoje!</strong>
-        {% else %}
-          <strong class="countdown-number">{{ countdown.number }}<small>{{ countdown.unit }}</small></strong>
-        {% endif %}
-        <span class="countdown-label">{% if countdown.state == 'before' %}{% if countdown.number == 0 %}Boa viagem!{% else %}{{ countdown.label }}{% endif %}{% elif countdown.state == 'during' %}Aproveite cada dia{% else %}{{ countdown.total_days }} {{ 'dia' if countdown.total_days == 1 else 'dias' }} de viagem{% endif %}</span>
+    <section class="trip-countdown is-{{ countdown.state }}" aria-label="Contagem regressiva da viagem" data-countdown="{{ countdown.number }}">
+      <div class="calendar-leaf" aria-hidden="true">
+        <span class="calendar-rings"></span>
+        <span class="calendar-top">{% if countdown.state == 'during' %}DIA{% else %}FALTAM{% endif %}</span>
+        <strong class="calendar-number" data-countdown-number>{% if countdown.state == 'before' and countdown.number == 0 %}🎉{% else %}{{ countdown.number }}{% endif %}</strong>
+        <span class="calendar-bottom">{{ countdown.unit }}</span>
       </div>
-      <div class="countdown-dates">
-        <div><span>IDA</span><strong>{{ trip.data_ida }}</strong></div>
-        <div><span>VOLTA</span><strong>{{ trip.data_volta }}</strong></div>
-        <div><span>DURAÇÃO</span><strong>{{ countdown.total_days }} {{ 'dia' if countdown.total_days == 1 else 'dias' }}</strong></div>
+      <div class="countdown-text">
+        <strong>{% if countdown.state == 'before' %}{% if countdown.number == 0 %}É hoje! Boa viagem{% else %}{{ countdown.label|capitalize }}{% endif %}{% elif countdown.state == 'during' %}Viagem em andamento{% else %}Viagem concluída{% endif %}</strong>
+        <span>{{ trip.destino }}{% if trip_country %}, {{ trip_country.name }}{% endif %}</span>
       </div>
-      {% if countdown.state == 'during' %}
-        <div class="countdown-progress" role="progressbar" aria-label="Progresso da viagem" aria-valuemin="0" aria-valuemax="100" aria-valuenow="{{ countdown.progress }}"><span style="width: {{ countdown.progress }}%"></span></div>
-      {% endif %}
     </section>
 
     <section class="finance-section" id="resumo" aria-labelledby="finance-title">

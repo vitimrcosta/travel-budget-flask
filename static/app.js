@@ -474,6 +474,27 @@
   });
 })();
 
+(function countdownCalendar() {
+  const box = document.querySelector("[data-countdown]");
+  const el = box && box.querySelector("[data-countdown-number]");
+  const target = box ? parseInt(box.dataset.countdown, 10) : 0;
+  if (!el || !target || target < 2 || matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+  const steps = Math.min(target, 12);
+  const start = target + Math.min(target, 30);
+  let i = 0;
+  setTimeout(() => {
+    const timer = setInterval(() => {
+      i += 1;
+      const value = i >= steps ? target : Math.round(start - ((start - target) * i) / steps);
+      el.textContent = value;
+      el.classList.remove("is-ticking");
+      void el.offsetWidth;
+      el.classList.add("is-ticking");
+      if (i >= steps) clearInterval(timer);
+    }, 70);
+  }, 450);
+})();
+
 (function autoDismissFlash() {
   document.querySelectorAll(".flash:not(.flash-error)").forEach((flash) => {
     setTimeout(() => {

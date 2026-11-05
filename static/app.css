@@ -1702,32 +1702,28 @@ td { padding: 13px 8px; border-top: 1px solid var(--line); color: #626e65; font-
   .danger-zone, .edit-form + .danger-zone { max-width: 980px; }
   .planning-form + .danger-zone { max-width: 900px; }
 }
-/* Contador de dias da viagem */
-.trip-countdown { position: relative; display: grid; grid-template-columns: auto 1fr; align-items: center; gap: 18px 32px; margin: 14px 0 0; padding: 20px 26px; overflow: hidden; border: 1px solid #d1e0d2; border-left: 3px solid var(--green); border-radius: 12px; background: linear-gradient(135deg, #f1f7f0, #e7f0e6); animation: arrive .45s .08s ease both; }
-.trip-countdown::after { content: ""; position: absolute; right: -40px; top: -50px; width: 160px; height: 160px; border-radius: 50%; background: radial-gradient(circle, rgba(197,148,54,.16), transparent 70%); pointer-events: none; }
-.countdown-main { display: grid; gap: 2px; }
-.countdown-eyebrow { color: var(--green); font-size: 10px; font-weight: 800; letter-spacing: .12em; }
-.countdown-number { display: flex; align-items: baseline; gap: 8px; color: var(--green); font-family: "Fraunces", Georgia, serif; font-size: 52px; font-weight: 600; line-height: 1.05; }
-.countdown-number small { color: var(--muted); font-family: inherit; font-size: 17px; font-weight: 500; }
-.countdown-today { font-size: 38px; }
-.countdown-label { color: var(--muted); font-size: 12px; font-weight: 600; }
-.countdown-dates { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; position: relative; z-index: 1; }
-.countdown-dates div { display: grid; gap: 4px; padding: 10px 14px; border: 1px solid rgba(23,72,59,.12); border-radius: 9px; background: rgba(255,255,255,.55); }
-.countdown-dates span { color: var(--muted); font-size: 9px; font-weight: 800; letter-spacing: .1em; }
-.countdown-dates strong { color: var(--ink); font-size: 13px; }
-.countdown-progress { grid-column: 1 / -1; height: 7px; overflow: hidden; border-radius: 999px; background: rgba(23,72,59,.14); }
-.countdown-progress span { display: block; height: 100%; border-radius: inherit; background: linear-gradient(90deg, var(--green), #c59436); }
-.trip-countdown.is-after { border-left-color: #8a958d; background: linear-gradient(135deg, #f4f6f3, #eaeee9); }
-.trip-countdown.is-after .countdown-number, .trip-countdown.is-after .countdown-eyebrow { color: #5f6c63; }
-:root[data-theme="dark"] .trip-countdown { border-color: #2f4a3b; background: linear-gradient(135deg, #1f3328, #1a2a21); }
-:root[data-theme="dark"] .countdown-eyebrow, :root[data-theme="dark"] .countdown-number { color: #8fd3a4; }
-:root[data-theme="dark"] .countdown-dates div { border-color: #2f4a3b; background: rgba(0,0,0,.18); }
-:root[data-theme="dark"] .countdown-dates strong { color: #e4efe6; }
-:root[data-theme="dark"] .countdown-progress { background: rgba(255,255,255,.1); }
+
+/* Contador de dias da viagem (calendario) */
+.trip-countdown { display: flex; align-items: center; gap: 18px; margin: 14px 0 0; padding: 14px 20px; border: 1px solid var(--line); border-radius: 12px; background: white; box-shadow: var(--shadow); animation: arrive .45s .08s ease both; }
+.calendar-leaf { position: relative; display: grid; flex: none; grid-template-rows: auto 1fr auto; justify-items: center; width: 68px; height: 76px; padding: 14px 0 6px; overflow: hidden; border: 1px solid #cdd8cd; border-radius: 10px; background: linear-gradient(#fff, #f3f6f1); box-shadow: 0 6px 14px rgba(28,50,39,.14), inset 0 -3px 0 rgba(23,72,59,.06); transform-origin: top center; animation: leaf-in .7s .2s cubic-bezier(.2,.8,.3,1) both; }
+.calendar-leaf::before { content: ""; position: absolute; inset: 0 0 auto; height: 15px; background: var(--green); }
+.calendar-rings { position: absolute; top: 4px; left: 0; right: 0; z-index: 1; height: 8px; background: radial-gradient(circle, #f4d98f 0 2.5px, transparent 3px) 0 0 / 22px 8px repeat-x; background-position: 5px 0; }
+.calendar-top { color: #c0432f; font-size: 8px; font-weight: 800; letter-spacing: .14em; line-height: 1; margin-top: 2px; }
+.calendar-number { align-self: center; color: var(--ink); font-family: Fraunces, Georgia, serif; font-size: 28px; font-weight: 700; line-height: 1; font-variant-numeric: tabular-nums; }
+.calendar-bottom { color: var(--muted); font-size: 9px; font-weight: 700; letter-spacing: .06em; }
+.countdown-text { display: grid; gap: 3px; min-width: 0; }
+.countdown-text strong { font-size: 15px; color: var(--ink); }
+.countdown-text span { color: var(--muted); font-size: 12px; }
+.trip-countdown.is-during .calendar-top { color: var(--green); }
+.trip-countdown.is-after .calendar-leaf { filter: grayscale(.7); opacity: .8; }
+@keyframes leaf-in { from { opacity: 0; transform: perspective(300px) rotateX(-70deg); } to { opacity: 1; transform: perspective(300px) rotateX(0); } }
+@keyframes leaf-tick { 0% { transform: translateY(-6px); opacity: 0; } 100% { transform: none; opacity: 1; } }
+.calendar-number.is-ticking { animation: leaf-tick .12s ease-out; }
+:root[data-theme="dark"] .trip-countdown { border-color: #2f4a3b; background: #1b2a21; }
+:root[data-theme="dark"] .calendar-leaf { border-color: #3a5646; background: linear-gradient(#26382d, #1f3025); box-shadow: 0 6px 14px rgba(0,0,0,.35); }
+:root[data-theme="dark"] .calendar-number, :root[data-theme="dark"] .countdown-text strong { color: #e8f3ea; }
+:root[data-theme="dark"] .calendar-top { color: #ff9b86; }
+@media (prefers-reduced-motion: reduce) { .calendar-leaf, .calendar-number.is-ticking { animation: none; } }
 @media (max-width: 720px) {
-  .trip-countdown { grid-template-columns: 1fr; gap: 14px; margin-top: 12px; padding: 16px; border-radius: 16px; }
-  .countdown-number { font-size: 44px; }
-  .countdown-dates { gap: 8px; }
-  .countdown-dates div { padding: 9px 10px; }
-  .countdown-dates strong { font-size: 12px; }
+  .trip-countdown { gap: 14px; margin-top: 12px; padding: 12px 14px; border-radius: 16px; }
 }
