@@ -85,6 +85,8 @@ O planejamento define quanto você pretende gastar em cada categoria (Alimentaç
 
 **Editar uma categoria:** no painel, toque na categoria (na tabela ou na lista do celular). Abre uma tela só dela, onde você muda o **nome** e o **valor previsto**. Se renomear, os gastos dessa categoria acompanham o novo nome. Nessa tela também há **Excluir categoria**.
 
+**Finalizar ou reabrir uma categoria:** na edição da categoria, escolha **Finalizada** ou **Em andamento** em Situação e salve. Uma categoria finalizada continua no painel, identificada pelo selo. A marcação não altera os cálculos nem bloqueia gastos: ao selecioná-la em um gasto, aparece um aviso e o lançamento pode ser salvo normalmente. Se ultrapassar o previsto, o saldo ficará negativo como de costume.
+
 **Remover categoria:** só é possível se ela **não tiver gastos**. Com gastos, o botão fica desativado e aparece o motivo.
 
 O **Total previsto** é a soma de todas as categorias e funciona como o orçamento geral da viagem.

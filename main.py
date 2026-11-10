@@ -703,6 +703,7 @@ def editar_planejamento():
     if not viagem:
         return
 
+    itens_atuais = {item["categoria"]: item for item in viagem.get("planejamento", [])}
     atuais = {
         item["categoria"]: float(item.get("valor_previsto", 0.0))
         for item in viagem.get("planejamento", [])
@@ -716,7 +717,7 @@ def editar_planejamento():
         if previsto is None:
             print("Edição do planejamento cancelada.")
             return
-        planejamento.append({"categoria": categoria, "valor_previsto": previsto})
+        planejamento.append({**itens_atuais[categoria], "valor_previsto": previsto})
 
     categorias_existentes = {categoria.casefold() for categoria in atuais}
     while True:

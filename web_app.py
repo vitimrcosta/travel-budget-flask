@@ -1205,7 +1205,7 @@ def edit_planning(trip_id):
             if error:
                 errors.append(error)
             else:
-                planning.append({"categoria": category, "valor_previsto": amount or 0.0})
+                planning.append({**existing[category], "valor_previsto": amount or 0.0})
 
         if errors:
             for error in errors:
@@ -1264,11 +1264,14 @@ def edit_planning_category(trip_id, category_index):
 
     if request.method == "POST":
         name = request.form.get("categoria", "").strip()
+        finalized = request.form.get("finalizada")
         amount, error = parse_amount(request.form.get("previsto"), "O valor previsto", required=False)
         if not name:
             error = "Informe o nome da categoria."
         elif len(name) > 100:
             error = "O nome da categoria deve ter até 100 caracteres."
+        elif finalized is not None and finalized not in {"0", "1"}:
+            error = "Selecione uma situação válida para a categoria."
         elif any(
             index != category_index and other["categoria"].casefold() == name.casefold()
             for index, other in enumerate(planning)
@@ -1279,6 +1282,8 @@ def edit_planning_category(trip_id, category_index):
         else:
             item["categoria"] = name
             item["valor_previsto"] = amount or 0.0
+            if finalized is not None:
+                item["finalizada"] = finalized == "1"
             if name != old_name:
                 for expense in trip.get("gastos", []):
                     if expense["categoria"] == old_name:

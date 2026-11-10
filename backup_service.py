@@ -147,7 +147,10 @@ def _normalize_trip(trip):
             raise ValueError(f"A categoria {category} aparece mais de uma vez.")
         categories.add(category_key)
         amount = _amount(item.get("valor_previsto", 0), "valor_previsto", allow_zero=True)
-        planning.append({"categoria": category, "valor_previsto": float(amount)})
+        finalized = item.get("finalizada", False)
+        if not isinstance(finalized, bool):
+            raise ValueError("Valor inválido no campo finalizada.")
+        planning.append({"categoria": category, "valor_previsto": float(amount), "finalizada": finalized})
 
     people = []
     people_by_name = {}

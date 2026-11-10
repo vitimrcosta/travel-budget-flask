@@ -465,6 +465,11 @@ td { padding: 13px 8px; border-top: 1px solid var(--line); color: #626e65; font-
 .flash-stack { display: grid; gap: 7px; margin-bottom: 18px; }
 .flash { padding: 11px 14px; border-left: 3px solid var(--green); border-radius: 2px; color: #244b38; background: #e8f1e8; font-size: 12px; }
 .flash-error { border-color: var(--coral); color: #8c392d; background: #fff0eb; }
+.category-finalized-badge { display: inline-block; width: fit-content; margin-left: 6px; padding: 3px 7px; border-radius: 999px; background: var(--mint); color: var(--green); font-size: 10px; font-weight: 700; white-space: nowrap; }
+.m-item-main .category-finalized-badge { margin: 3px 0; }
+.category-finalized-warning:not([hidden]) { margin: 0; padding: 10px 12px; border-left: 3px solid #c59436; border-radius: 6px; background: #fbf6e9; color: #775718; font-size: 12px; line-height: 1.5; }
+:root[data-theme="dark"] .category-finalized-badge { background: #2a4736; color: #b7dfc2; }
+:root[data-theme="dark"] .category-finalized-warning:not([hidden]) { background: #3a3220; color: #f0d7a0; }
 .report-toolbar { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
 .report-toolbar .back-link { margin: 0; }
 .report-sheet { max-width: 900px; margin: 0 auto; padding: 38px 46px; border: 1px solid var(--line); background: white; box-shadow: var(--shadow); }

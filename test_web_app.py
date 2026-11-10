@@ -199,6 +199,43 @@ class BackupServiceTests(unittest.TestCase):
         restored_legacy = validate_backup_document(make_trip_export(legacy_trip))[0]
         self.assertEqual(restored_legacy["reservas"], [])
 
+    def test_backup_preserva_categoria_finalizada_e_aceita_backup_antigo(self):
+        trip = self.sample_trip()
+        self.assertFalse(validate_backup_document(make_trip_export(trip))[0]["planejamento"][0]["finalizada"])
+        trip["planejamento"][0]["finalizada"] = True
+        restored = validate_backup_document(make_trip_export(trip))[0]
+        self.assertTrue(restored["planejamento"][0]["finalizada"])
+        trip["planejamento"][0]["finalizada"] = "false"
+        with self.assertRaisesRegex(ValueError, "finalizada"):
+            validate_backup_document(make_trip_export(trip))
+
+    def test_mysql_sincroniza_estado_da_categoria(self):
+        cursor = Mock()
+        cursor.fetchall.return_value = [(7, "Hotel")]
+        db_service.storage_manager._sync_planning(cursor, 1, [
+            {"categoria": "Hotel", "valor_previsto": 100, "finalizada": True},
+            {"categoria": "Passeios", "valor_previsto": 50},
+        ])
+        cursor.execute.assert_any_call(
+            "UPDATE planejamento_categoria SET valor_previsto = %s, finalizada = %s WHERE id = %s",
+            (100.0, True, 7),
+        )
+        cursor.execute.assert_any_call(
+            "INSERT INTO planejamento_categoria (viagem_id, categoria, valor_previsto, finalizada) VALUES (%s, %s, %s, %s)",
+            (1, "Passeios", 50.0, False),
+        )
+
+    def test_edicao_cli_preserva_estado_da_categoria(self):
+        trip = {"planejamento": [{"categoria": "Hotel", "valor_previsto": 100, "finalizada": True}]}
+        with patch.object(main, "selecionar_viagem", return_value=trip), \
+             patch.object(main, "prompt_float_optional", return_value=120), \
+             patch.object(main, "prompt_text", return_value=""), \
+             patch.object(main, "salvar_viagem") as save:
+            main.editar_planejamento()
+        self.assertEqual(trip["planejamento"][0]["valor_previsto"], 120)
+        self.assertTrue(trip["planejamento"][0]["finalizada"])
+        save.assert_called_once_with(trip)
+
     def test_backup_diario_nao_sobrescreve_e_retencao_e_limitada(self):
         from datetime import datetime, timezone, timedelta
 
@@ -1001,6 +1038,58 @@ class WebAppTests(unittest.TestCase):
             selected = find_next_activity(activities, reference_time)
         self.assertEqual(selected["id"], 1)
         self.assertEqual(selected["horario"], "")
+
+    def test_finalizacao_categoria_preserva_calculos_e_permite_novos_gastos(self):
+        self.client.post("/trips/new", data={
+            "destino": "Teste", "data_ida": "2026-07-10", "data_volta": "2026-07-15",
+        })
+        with self.client.session_transaction() as browser_session:
+            trip_id = browser_session["selected_trip_id"]
+        self.client.post(f"/trips/{trip_id}/planning/categories", data={"categoria_nova": "Hospedagem"})
+        trip = db_service.storage_manager.get_viagem(trip_id)
+        index = next(i for i, row in enumerate(trip["planejamento"]) if row["categoria"] == "Hospedagem")
+        route = f"/trips/{trip_id}/planning/categories/{index}"
+        self.client.post(route, data={"categoria": "Hospedagem", "previsto": "100", "finalizada": "1"})
+        trip = db_service.storage_manager.get_viagem(trip_id)
+        self.assertTrue(trip["planejamento"][index]["finalizada"])
+        dashboard = self.client.get(f"/trips/{trip_id}").get_data(as_text=True)
+        self.assertEqual(dashboard.count("✓ Finalizada"), 2)
+
+        amounts = {f"previsto_{i}": str(row["valor_previsto"]) for i, row in enumerate(trip["planejamento"])}
+        self.client.post(f"/trips/{trip_id}/planning", data=amounts)
+        self.assertTrue(db_service.storage_manager.get_viagem(trip_id)["planejamento"][index]["finalizada"])
+
+        expense = {
+            "data_gasto": "2026-07-11", "categoria": "Hospedagem",
+            "descricao": "Hotel", "moeda": "BRL", "valor_original": "150",
+            "pago": "1", "forma_pagamento": "Pix",
+        }
+        error_page = self.client.post(f"/trips/{trip_id}/expenses/new", data={**expense, "descricao": ""}).get_data(as_text=True)
+        self.assertIn('data-category-warning role="status" >', error_page)
+        self.assertIn('data-finalizada="1" selected', error_page)
+        response = self.client.post(f"/trips/{trip_id}/expenses/new", data=expense)
+        self.assertEqual(response.status_code, 302)
+        trip = db_service.storage_manager.get_viagem(trip_id)
+        self.assertTrue(trip["planejamento"][index]["finalizada"])
+        line = next(row for row in main.calcular_totais(trip)["categorias"] if row["categoria"] == "Hospedagem")
+        self.assertEqual(line["falta"], -50)
+        self.assertEqual(line["alerta_orcamento"], "excedido")
+        expense_id = trip["gastos"][0]["id"]
+        edit_page = self.client.get(f"/trips/{trip_id}/expenses/{expense_id}/edit").get_data(as_text=True)
+        self.assertIn('data-category-warning role="status" >', edit_page)
+
+        self.client.post(route, data={"categoria": "Hotel", "previsto": "100", "finalizada": "1"})
+        trip = db_service.storage_manager.get_viagem(trip_id)
+        self.assertTrue(trip["planejamento"][index]["finalizada"])
+        self.assertEqual(trip["gastos"][0]["categoria"], "Hotel")
+        restored = validate_backup_document(make_trip_export(trip))[0]
+        self.assertTrue(next(row for row in restored["planejamento"] if row["categoria"] == "Hotel")["finalizada"])
+        self.client.post(route, data={"categoria": "Hotel", "previsto": "100", "finalizada": "0"})
+        trip = db_service.storage_manager.get_viagem(trip_id)
+        self.assertFalse(trip["planejamento"][index]["finalizada"])
+        self.assertNotIn("✓ Finalizada", self.client.get(f"/trips/{trip_id}").get_data(as_text=True))
+        page = self.client.get(f"/trips/{trip_id}/expenses/{expense_id}/edit").get_data(as_text=True)
+        self.assertIn('data-category-warning role="status" hidden', page)
 
     def test_categoria_personalizada_e_protecao_de_remocao(self):
         response = self.client.post(

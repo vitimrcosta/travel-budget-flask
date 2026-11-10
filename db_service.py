@@ -170,6 +170,7 @@ class StorageManager:
                 viagem_id INT NOT NULL,
                 categoria VARCHAR(100) NOT NULL,
                 valor_previsto DECIMAL(14,2) NOT NULL DEFAULT 0.00,
+                finalizada BOOLEAN NOT NULL DEFAULT FALSE,
                 PRIMARY KEY (id),
                 UNIQUE KEY uq_planejamento_viagem_categoria (viagem_id, categoria),
                 CONSTRAINT fk_planejamento_viagem
@@ -179,6 +180,9 @@ class StorageManager:
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
             """
         )
+        cursor.execute("SHOW COLUMNS FROM planejamento_categoria LIKE 'finalizada'")
+        if cursor.fetchone() is None:
+            cursor.execute("ALTER TABLE planejamento_categoria ADD COLUMN finalizada BOOLEAN NOT NULL DEFAULT FALSE")
         cursor.execute(
             """
             CREATE TABLE IF NOT EXISTS atividade (
@@ -624,6 +628,7 @@ class StorageManager:
                     "id": row["id"],
                     "categoria": row["categoria"],
                     "valor_previsto": float(row["valor_previsto"]),
+                    "finalizada": bool(row["finalizada"]),
                 }
                 for row in planejamento
             ],
@@ -951,15 +956,16 @@ class StorageManager:
         for item in items:
             category = item["categoria"]
             amount = float(item.get("valor_previsto", 0.0))
+            finalized = bool(item.get("finalizada", False))
             if category in existing:
                 cursor.execute(
-                    "UPDATE planejamento_categoria SET valor_previsto = %s WHERE id = %s",
-                    (amount, existing[category]),
+                    "UPDATE planejamento_categoria SET valor_previsto = %s, finalizada = %s WHERE id = %s",
+                    (amount, finalized, existing[category]),
                 )
             else:
                 cursor.execute(
-                    "INSERT INTO planejamento_categoria (viagem_id, categoria, valor_previsto) VALUES (%s, %s, %s)",
-                    (viagem_id, category, amount),
+                    "INSERT INTO planejamento_categoria (viagem_id, categoria, valor_previsto, finalizada) VALUES (%s, %s, %s, %s)",
+                    (viagem_id, category, amount, finalized),
                 )
             retained_categories.add(category)
 

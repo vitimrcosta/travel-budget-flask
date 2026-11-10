@@ -474,6 +474,18 @@
   });
 })();
 
+(function finalizedCategoryWarning() {
+  const select = document.querySelector("[data-expense-category]");
+  const warning = document.querySelector("[data-category-warning]");
+  if (!select || !warning) return;
+  const updateWarning = () => {
+    const option = select.selectedOptions[0];
+    warning.hidden = !option || option.dataset.finalizada !== "1";
+  };
+  select.addEventListener("change", updateWarning);
+  updateWarning();
+})();
+
 (function countdownCalendar() {
   const box = document.querySelector("[data-countdown]");
   const el = box && box.querySelector("[data-countdown-number]");
